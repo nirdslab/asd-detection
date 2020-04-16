@@ -27,9 +27,10 @@ def create_model(frames, matrix_rows, matrix_cols, channels):
 def load_dataset():
     _x = ...
     _y = ...
-    if os.path.exists('data/x.npy') and os.path.exists('data/y.npy'):
-        print('loading npy files')
-        _x, _y = np.load('data/x.npy'), np.load('data/y.npy')
+    if os.path.exists('data/dataset.npz'):
+        print('loading npz dataset')
+        _data = np.load('data/dataset.npz')
+        _x, _y = [_data['x'], _data['y']]
         print('OK')
     else:
         print('npy files not found. creating from dataset')
@@ -73,8 +74,7 @@ def load_dataset():
 
         # save x and y
         print('Saving x and y')
-        np.save('data/x.npy', _x)
-        np.save('data/y.npy', _y)
+        np.savez_compressed('data/dataset.npz', x=_x, y=_y)
         print('OK')
     return _x, _y
 
@@ -90,4 +90,4 @@ if __name__ == '__main__':
     model.summary()
 
     print('Training')
-    model.fit(X, Y, epochs=10, validation_split=0.1)
+    model.fit(X, Y, epochs=10, validation_split=0.2)
