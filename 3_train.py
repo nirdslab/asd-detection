@@ -13,7 +13,7 @@ def create_model(frames, matrix_rows, matrix_cols, channels):
     conv_spec = {'kernel_size': (3, 3), 'strides': (1, 1), 'activation': 'relu', 'kernel_regularizer': regularizers.l2(0.001), 'padding': 'same'}
 
     _model = models.Sequential(name='asd_classifier')
-    _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_signals'))
+    _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
     _model.add(layers.TimeDistributed(layers.Conv2D(filters=32, **conv_spec), name='conv_1'))
     _model.add(layers.TimeDistributed(layers.Conv2D(filters=64, **conv_spec), name='conv_2'))
     _model.add(layers.TimeDistributed(layers.GlobalMaxPooling2D(), name='pooling'))
@@ -39,30 +39,36 @@ def load_dataset():
             index=['002', '004', '005', '007', '008', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020', '021', '022']
         )
         print('OK')
-        print(data)
 
         # define constant values
         participants = data['Participant'].unique()  # participants
         epochs = data['Epoch'].unique()[1:]  # epochs (ignoring baseline)
-        NUM_SAMPLES = 12000  # number of samples to take from each epoch
         NUM_ROWS = 5
         NUM_COLS = 6
         NUM_CHANNELS = 1
+        FREQ = 250  # sampling frequency
+
+        # define parameters to extract training samples (slices)
+        SLICE_SECONDS = 4  # number of seconds per slice
+        SLICE_SAMPLES = FREQ * SLICE_SECONDS  # samples per slice
+        SLICE_SHAPE = (SLICE_SAMPLES, NUM_ROWS, NUM_COLS, NUM_CHANNELS)
 
         # define x and y
-        _x = np.zeros(shape=(len(participants) * len(epochs), NUM_SAMPLES, NUM_ROWS, NUM_COLS, NUM_CHANNELS))
-        _y = np.zeros(shape=(len(participants) * len(epochs),))
+        _x = np.empty(shape=(0, *SLICE_SHAPE))
+        _y = np.empty(shape=(0,))
 
         # generate values for x and y
         print('Generating X and Y')
         data = data.set_index('Participant')
-        i = 0
-        for c in participants:
-            p = data.loc[c].set_index('Epoch')
-            for e in epochs:
-                _x[i] = np.expand_dims(p.loc[e].set_index('T').iloc[:NUM_SAMPLES].to_numpy().reshape((NUM_SAMPLES, 5, 6)), axis=-1)
-                _y[i] = labels.loc[c]['Label']
-                i += 1
+        for i, p in enumerate(participants):
+            label = labels.loc[p]['Label']
+            d = data.loc[p].set_index('Epoch')
+            for j, e in enumerate(epochs):
+                s = d.loc[e].set_index('T')  # type: pd.DataFrame
+                N = len(s) // SLICE_SAMPLES  # number of possible slices
+                _slices = s.iloc[:(N * SLICE_SAMPLES)].to_numpy().reshape((N, *SLICE_SHAPE))
+                _x = np.append(_x, _slices, axis=0)
+                _y = np.append(_y, np.full((N,), label), axis=0)
         print('OK')
 
         # save x and y
@@ -76,6 +82,8 @@ def load_dataset():
 if __name__ == '__main__':
     # load dataset
     X, Y = load_dataset()
+    print(f'X: {X.shape}')
+    print(f'Y: {Y.shape}')
 
     print('Creating Model')
     model = create_model(*X.shape[1:])
