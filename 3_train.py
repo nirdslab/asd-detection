@@ -13,12 +13,12 @@ def create_model(frames, matrix_rows, matrix_cols, channels):
     _model = models.Sequential(name='asd_classifier')
     _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
     _model.add(layers.TimeDistributed(layers.Flatten(), name='flatten_0'))
-    _model.add(layers.TimeDistributed(layers.Dense(4, activation='tanh', kernel_regularizer='l2'), name='dense_0'))
-    _model.add(layers.Conv1D(filters=8, kernel_size=125, strides=25, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.TimeDistributed(layers.Dense(8, activation='tanh', kernel_regularizer='l2'), name='dense_0'))
+    _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=50, activation='tanh', kernel_regularizer='l2', padding='same'))
     _model.add(layers.SpatialDropout1D(rate=0.1))
-    _model.add(layers.LSTM(16, dropout=0.1))
+    _model.add(layers.LSTM(32, dropout=0.1))
     _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
-    _model.compile(optimizer=optimizers.Adam(learning_rate=1e-5), loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer=optimizers.SGD(lr=1e-3), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -88,4 +88,4 @@ if __name__ == '__main__':
     model.summary()
 
     print('Training')
-    model.fit(X, Y, epochs=1000, validation_split=0.2)
+    model.fit(X, Y, epochs=10000, validation_split=0.2)
