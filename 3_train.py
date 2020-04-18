@@ -10,17 +10,15 @@ def create_model(frames, matrix_rows, matrix_cols, channels):
     """
     Generate model capable of handling multi-channel EEG time-series
     """
-    conv_spec = {'kernel_size': (3, 3), 'strides': (1, 1), 'activation': 'relu', 'kernel_regularizer': regularizers.l2(0.001), 'padding': 'same'}
-
     _model = models.Sequential(name='asd_classifier')
     _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
-    _model.add(layers.TimeDistributed(layers.Conv2D(filters=32, **conv_spec), name='conv_1'))
-    _model.add(layers.TimeDistributed(layers.Conv2D(filters=64, **conv_spec), name='conv_2'))
-    _model.add(layers.TimeDistributed(layers.GlobalMaxPooling2D(), name='pooling'))
-    _model.add(layers.LSTM(128, dropout=0.1))
-    _model.add(layers.Dense(64, activation='sigmoid'))
-    _model.add(layers.Dense(1, activation='sigmoid'))
-    _model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    _model.add(layers.TimeDistributed(layers.Flatten(), name='flatten_0'))
+    _model.add(layers.TimeDistributed(layers.Dense(4, activation='tanh', kernel_regularizer='l2'), name='dense_0'))
+    _model.add(layers.Conv1D(filters=8, kernel_size=125, strides=25, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.SpatialDropout1D(rate=0.1))
+    _model.add(layers.LSTM(16, dropout=0.1))
+    _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
+    _model.compile(optimizer=optimizers.Adam(learning_rate=1e-5), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -90,4 +88,4 @@ if __name__ == '__main__':
     model.summary()
 
     print('Training')
-    model.fit(X, Y, epochs=10, validation_split=0.2)
+    model.fit(X, Y, epochs=1000, validation_split=0.2)
