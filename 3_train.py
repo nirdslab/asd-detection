@@ -6,19 +6,32 @@ import pandas as pd
 from tensorflow.keras import *
 
 
-def create_model(frames, matrix_rows, matrix_cols, channels):
+def create_lstm_64(frames, matrix_rows, matrix_cols, channels):
     """
-    Generate model capable of handling multi-channel EEG time-series
+    Generate 64-unit LSTM model
     """
-    _model = models.Sequential(name='asd_classifier')
+    _model = models.Sequential(name='asd_lstm_64')
     _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
-    _model.add(layers.TimeDistributed(layers.Flatten(), name='flatten_0'))
-    _model.add(layers.TimeDistributed(layers.Dense(4, activation='tanh', kernel_regularizer='l2'), name='dense_0'))
-    _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=5, activation='tanh', kernel_regularizer='l2', padding='same'))
-    _model.add(layers.Dropout(rate=0.1))
-    _model.add(layers.LSTM(4, dropout=0.1))
+    _model.add(layers.TimeDistributed(layers.Flatten()))
+    _model.add(layers.LSTM(64, kernel_regularizer='l2'))
     _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
-    _model.compile(optimizer=optimizers.SGD(lr=1e-3), loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer='sgd', loss='binary_crossentropy', metrics=['accuracy'])
+    return _model
+
+
+def create_conv_32(frames, matrix_rows, matrix_cols, channels):
+    """
+    Generate 32-unit 1D Convolution model
+    """
+    _model = models.Sequential(name='asd_conv_32')
+    _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
+    _model.add(layers.TimeDistributed(layers.Flatten()))
+    _model.add(layers.Conv1D(filters=8, kernel_size=250, strides=10, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.MaxPooling1D())
+    _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=10, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.Flatten())
+    _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
+    _model.compile(optimizer='sgd', loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -83,9 +96,12 @@ if __name__ == '__main__':
     print(f'X: {X.shape}')
     print(f'Y: {Y.shape}')
 
-    print('Creating Model')
-    model = create_model(*X.shape[1:])
-    model.summary()
+    print('Creating Models')
+    models = [create_conv_32(*X.shape[1:]), create_lstm_64(*X.shape[1:])]
+    print('OK')
 
-    print('Training')
-    model.fit(X, Y, epochs=500, validation_split=0.2)
+    print('Evaluating')
+    for model in models:
+        model.summary()
+        model.fit(X, Y, epochs=500, validation_split=0.2)
+    print('Done')
