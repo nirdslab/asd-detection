@@ -26,9 +26,9 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     _model = models.Sequential(name='asd_conv_32')
     _model.add(layers.Input(shape=(frames, matrix_rows, matrix_cols, channels), name='eeg_slice'))
     _model.add(layers.TimeDistributed(layers.Flatten()))
-    _model.add(layers.Conv1D(filters=8, kernel_size=250, strides=10, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.Conv1D(filters=8, kernel_size=250, strides=10, activation='relu', kernel_regularizer='l2', padding='same'))
     _model.add(layers.MaxPooling1D())
-    _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=10, activation='tanh', kernel_regularizer='l2', padding='same'))
+    _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=10, activation='relu', kernel_regularizer='l2', padding='same'))
     _model.add(layers.Flatten())
     _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
     _model.compile(optimizer='sgd', loss='binary_crossentropy', metrics=['accuracy'])
@@ -95,6 +95,9 @@ if __name__ == '__main__':
     X, Y = load_dataset()
     print(f'X: {X.shape}')
     print(f'Y: {Y.shape}')
+
+    # normalize X
+    X = (X - np.min(X)) / (np.max(X) - np.min(X))
 
     print('Creating Models')
     models = [create_conv_32(*X.shape[1:]), create_lstm_64(*X.shape[1:])]
