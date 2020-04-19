@@ -51,7 +51,7 @@ if __name__ == '__main__':
         _out = data.to_data_frame().rename(columns={'time': 'T'})  # type: pd.DataFrame
         _out['Participant'] = i[0]
         _out['Epoch'] = i[1]
-        _out = _out.set_index(['Participant', 'Epoch', 'T'])
+        _out = _out.set_index(['Participant', 'Epoch', 'T'])[target_cols]
         df_out = df_out.append(_out)
     print('OK')
 
