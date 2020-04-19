@@ -1,82 +1,60 @@
 #!/usr/bin/env python3
 
+import mne
+import numpy as np
 import pandas as pd
-
-
-def fill_missing_values():
-    # edge extension
-    df['F9'] = df['F9'].fillna((df['F7']) * 0.75)
-    df['F10'] = df['F10'].fillna((df['F8']) * 0.75)
-    df['P9'] = df['P9'].fillna((df['P7']) * 0.75)
-    df['P10'] = df['P10'].fillna((df['P8']) * 0.75)
-
-    # interpolation (equal contribution)
-    df['F4'] = df['F4'].fillna((df['Fz'] + df['F8'] + df['FC2'] + df['FC6']) / 4)
-    df['P3'] = df['P3'] = df['P3'] * 0.75 + (df['O1'] * 0.25).fillna(df['P3'] * 0.25)
-    del df['O1']
-    df['FC5'] = df['FC5'].fillna((df['F7'] + df['F3'] + df['C3'] + df['T7']) / 4)
-    df['C4'] = df['C4'].fillna((df['FC2'] + df['FC6'] + df['CP2'] + df['CP6']) / 4)
-    df['T8'] = df['T8'].fillna((df['FC6'] + df['C4'] + df['T10']) / 3)
-    df['CP6'] = df['CP6'].fillna((df['T8'] + df['C4'] + df['CP2'] + df['P4'] + df['P8']) / 5)
-    df['CP1'] = df['CP1'].fillna((df['C3'] + df['P3'] + df['CP5']) / 3)
-    df['P8'] = df['P8'].fillna((df['P10'] + df['CP6'] + df['P4']) / 3)
-    df['P4'] = df['P4'].fillna((df['CP2'] + df['CP6'] + df['P8']) / 3)
-    df['Pz'] = df['Pz'].fillna((df['P4'] + df['P3']) / 2)
-
-    # fill missing electrodes with the average of adjacent electrodes, and weight it by 0.75
-    df['FC7'] = ((df['FC5'] + df['T7'] + df['F7']) / 3) * 0.75
-    df['FC8'] = ((df['FC6'] + df['T8'] + df['F8']) / 3) * 0.75
-    df['CP7'] = ((df['CP5'] + df['T7'] + df['P7']) / 3) * 0.75
-    df['CP8'] = ((df['CP6'] + df['T8'] + df['P8']) / 3) * 0.75
-
-
-def find_missing_value_cols():
-    for col in df.columns:
-        missing_participants = participants.difference(df[col].dropna().reset_index()["Participant"].unique())
-        if len(missing_participants) > 0:
-            print(f'col_{col.lower()}={missing_participants}')
-
 
 participants = {'002', '004', '005', '007', '008', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020', '021', '022'}
 if __name__ == '__main__':
     # read data
     print('Loading model...', sep=' ', flush=True)
     df = pd.read_feather('data/dataset.ftr')
+    df['FT7'], df['FT8'], df['TP7'], df['TP8'] = np.nan, np.nan, np.nan, np.nan
     print('OK')
 
     # index by participant, epoch and time
     print('Updating Index')
-    df = df.set_index(['Participant', 'Epoch', 'T'])
+    df = df.set_index(['Participant', 'Epoch']).sort_index()
+    print('OK')
 
-    # check columns for missing data
-    print('Checking columns for missing data')
-    find_missing_value_cols()
-
-    # interpolate missing data with nearby electrode values (pre-processing)
-    print('Interpolating missing data with nearby values')
-
-    # edge extension part (75%)
-    fill_missing_values()
-
-    # make sure there are no missing data
-    print('Making sure there are no missing data')
-    assert df.shape == df.dropna().shape
-
-    # the resulting matrix looks like
+    # target matrix
     # ===========================
     # F9  F7  F3  [Fz]  F4  F8  F10
-    # FC7 FC5 FC1 [--]  FC2 FC6 FC8
+    # FT7 FC5 FC1 [--]  FC2 FC6 FT8
     # T9  T7  C3  [--]  C4  T8  T10
-    # CP7 CP5 CP1 [--]  CP2 CP6 CP8
+    # TP7 CP5 CP1 [--]  CP2 CP6 TP8
     # P9  P7  P3  [Pz]  P4  P8  P10
     # ===========================
-
-    print('Setting electrode order, and saving dataset')
-    cols = [
+    target_cols = [
         'F9', 'F7', 'F3', 'F4', 'F8', 'F10',
-        'FC7', 'FC5', 'FC1', 'FC2', 'FC6', 'FC8',
+        'FT7', 'FC5', 'FC1', 'FC2', 'FC6', 'FT8',
         'T9', 'T7', 'C3', 'C4', 'T8', 'T10',
-        'CP7', 'CP5', 'CP1', 'CP2', 'CP6', 'CP8',
+        'TP7', 'CP5', 'CP1', 'CP2', 'CP6', 'TP8',
         'P9', 'P7', 'P3', 'P4', 'P8', 'P10'
     ]
-    df[cols].reset_index().to_feather('data/dataset-clean.ftr')
+    df_out = pd.DataFrame(columns=target_cols, index=pd.MultiIndex.from_arrays(arrays=[[], [], []], names=['Participant', 'Epoch', 'T']))
+
+    print('Interpolating missing columns')
+    for i in df.index.unique():
+        # select data slice
+        _in = df.loc[i].set_index('T')  # type: pd.DataFrame
+        # define columns
+        _cols = _in.columns.to_list()  # type: list
+        _bads = _in.columns[_in.isna().any()].tolist()  # type: list
+        # interpolate bad columns
+        _info = mne.create_info(ch_names=_cols, sfreq=250, ch_types='eeg')  # type: dict
+        _info['bads'] = _bads
+        data = mne.io.RawArray(data=_in.to_numpy().transpose(), info=_info)
+        data.set_montage('standard_1020')
+        data.interpolate_bads(reset_bads=True)
+        # append to output
+        _out = data.to_data_frame().rename(columns={'time': 'T'})  # type: pd.DataFrame
+        _out['Participant'] = i[0]
+        _out['Epoch'] = i[1]
+        _out = _out.set_index(['Participant', 'Epoch', 'T'])
+        df_out = df_out.append(_out)
+    print('OK')
+
+    print('Saving data')
+    df_out.reset_index().to_feather('data/dataset-clean.ftr')
+    print('OK')
