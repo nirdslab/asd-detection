@@ -15,7 +15,7 @@ def create_lstm_64(frames, matrix_rows, matrix_cols, channels):
     _model.add(layers.TimeDistributed(layers.Flatten()))
     _model.add(layers.LSTM(64, kernel_regularizer='l2'))
     _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
-    _model.compile(optimizer='sgd', loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer=optimizers.SGD(learning_rate=0.01, momentum=0.9, nesterov=True), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -31,7 +31,7 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     _model.add(layers.Conv1D(filters=16, kernel_size=250, strides=10, activation='relu', kernel_regularizer='l2', padding='same'))
     _model.add(layers.Flatten())
     _model.add(layers.Dense(1, activation='sigmoid', kernel_regularizer='l2'))
-    _model.compile(optimizer='sgd', loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer=optimizers.SGD(learning_rate=0.01, momentum=0.9, nesterov=True), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -47,7 +47,10 @@ def load_dataset():
         print('npy files not found. creating from dataset')
         data = pd.read_feather('data/dataset-clean.ftr')
         labels = pd.DataFrame(
-            data={'Label': [1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]},
+            data={
+                'Label': [1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0],
+                'Score': [19.0, 12.0, 5.0, 0.0, 5.0, 11.0, 16.0, 16.0, 0.0, 7.0, 4.0, 0.0, 20.0, 2.0, 9.0, 4.0, 0.0]
+            },
             index=['002', '004', '005', '007', '008', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020', '021', '022']
         )
         print('OK')
@@ -100,11 +103,11 @@ if __name__ == '__main__':
     X = (X - np.min(X)) / (np.max(X) - np.min(X))
 
     print('Creating Models')
-    models = [create_conv_32(*X.shape[1:]), create_lstm_64(*X.shape[1:])]
+    models = [create_lstm_64(*X.shape[1:]), create_conv_32(*X.shape[1:])]
     print('OK')
 
     print('Evaluating')
     for model in models:
         model.summary()
-        model.fit(X, Y, epochs=500, validation_split=0.2)
+        model.fit(X, Y, epochs=500, validation_split=0.4)
     print('Done')
