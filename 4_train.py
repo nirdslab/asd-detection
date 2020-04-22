@@ -46,23 +46,13 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     return _model
 
 
-def load_dataset():
-    [_x, _y, _z] = [..., ..., ...]  # type: np.ndarray
-    print('loading dataset...')
-    if os.path.exists('data/data-final.npz'):
-        _data = np.load('data/data-final.npz')
-        [_x, _y, _z] = [_data['x'], _data['y'], _data['z']]
-        print('OK')
-    else:
-        print('Error - file not found')
-        exit(1)
-
-    return _x, _y, _z
-
-
 if __name__ == '__main__':
     # load dataset
-    X, Y, Z = load_dataset()
+    print('loading dataset...')
+    data = np.load('data/data-final.npz')
+    X, Y, Z = [data['x'], data['y'], data['z']]  # type: np.ndarray
+    print('OK')
+
     print(f'X: shape={X.shape}')
     print(f'Y: shape={Y.shape}')
     print(f'Z: shape={Z.shape}')
