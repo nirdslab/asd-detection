@@ -11,13 +11,14 @@ def create_lstm_32(frames, matrix_rows, matrix_cols, channels):
     """
     Generate 32-unit LSTM model
     """
+    reg = k.regularizers.l1_l2(0.0001, 0.0001)
     _model = k.models.Sequential(name='asd_lstm_32', layers=[
         k.layers.Input(shape=(frames, matrix_rows, matrix_cols, channels)),
         k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
-        k.layers.LSTM(32, return_sequences=True, kernel_regularizer='l2', name='lstm_1'),
-        k.layers.LSTM(32, kernel_regularizer='l2', name='lstm_2'),
-        k.layers.Dense(64, activation='sigmoid', kernel_regularizer='l2', name='dense'),
-        k.layers.Dense(1, activation='sigmoid', kernel_regularizer='l2', name='prediction')
+        k.layers.LSTM(32, return_sequences=True, kernel_regularizer=reg, name='lstm_1'),
+        k.layers.LSTM(32, kernel_regularizer=reg, name='lstm_2'),
+        k.layers.Dense(64, activation='sigmoid', kernel_regularizer=reg, name='dense'),
+        k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
     _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.01, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
@@ -27,11 +28,12 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     """
     Generate 32-unit 1D Convolution model
     """
+    reg = k.regularizers.l1_l2(0.0001, 0.0001)
     conv_1d_spec = {
         'kernel_size': 250,
         'strides': 2,
         'activation': 'relu',
-        'kernel_regularizer': 'l2',
+        'kernel_regularizer': reg,
         'padding': 'same'
     }
     _model = k.models.Sequential(name='asd_conv_32', layers=[
@@ -39,8 +41,8 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
         k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
         k.layers.Conv1D(filters=32, **conv_1d_spec, name='conv_1d'),
         k.layers.GlobalMaxPooling1D(name='pool_1d'),
-        k.layers.Dense(64, activation='sigmoid', kernel_regularizer='l2', name='dense'),
-        k.layers.Dense(1, activation='sigmoid', kernel_regularizer='l2', name='prediction')
+        k.layers.Dense(64, activation='sigmoid', kernel_regularizer=reg, name='dense'),
+        k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
     _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.01, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
