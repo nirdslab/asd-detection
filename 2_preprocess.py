@@ -8,7 +8,7 @@ participants = {'002', '004', '005', '007', '008', '011', '012', '013', '014', '
 if __name__ == '__main__':
     # read data
     print('Loading model...', sep=' ', flush=True)
-    df = pd.read_feather('data/dataset.ftr')
+    df = pd.read_feather('data/data-original.ftr')
     df['FT7'], df['FT8'], df['TP7'], df['TP8'] = np.nan, np.nan, np.nan, np.nan
     print('OK')
 
@@ -56,5 +56,5 @@ if __name__ == '__main__':
     print('OK')
 
     print('Saving data')
-    df_out.reset_index().to_feather('data/dataset-clean.ftr')
+    df_out.reset_index().to_feather('data/data-clean.ftr')
     print('OK')

@@ -32,5 +32,5 @@ if __name__ == '__main__':
     cols = ['Participant', 'Epoch', 'T']
     cols += sorted([x for x in df.columns if x not in cols])
     df = df[cols]
-    df.to_feather('data/dataset.ftr')
+    df.to_feather('data/data-original.ftr')
     print('DONE')
