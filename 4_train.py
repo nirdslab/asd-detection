@@ -11,7 +11,7 @@ def create_lstm_64(frames, ch_rows, ch_cols, bands):
     """
     Generate 32-unit LSTM model
     """
-    reg = k.regularizers.l1_l2(0.005, 0.005)
+    reg = k.regularizers.l1_l2(0.001, 0.001)
     _model = k.models.Sequential(name='asd_lstm_32', layers=[
         k.layers.Input(shape=(frames, ch_rows, ch_cols, bands)),
         k.layers.TimeDistributed(k.layers.GlobalMaxPooling2D(), name='eeg'),  # shape: (frames, bands)
@@ -28,7 +28,7 @@ def create_conv_64(frames, ch_rows, ch_cols, bands):
     """
     Generate 64-unit 1D Convolution model
     """
-    reg = k.regularizers.l1_l2(0.005, 0.005)
+    reg = k.regularizers.l1_l2(0.001, 0.001)
     conv_1d_spec = {
         'activation': 'relu',
         'kernel_regularizer': reg,

@@ -37,7 +37,7 @@ if __name__ == '__main__':
     _z = np.empty(shape=(0,))  # ADOS-2 score
 
     # wavelet transform properties
-    wavelet = 'mexh'  # mexican hat wavelet
+    wavelet = 'cmor1.0-1.5'  # complex morlet wavelet (1.0 Hz - 1.5 Hz)
     scales = 250 / BANDS  # scales corresponding to frequency bands
 
     # generate values for x, y, and z
