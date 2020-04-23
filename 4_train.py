@@ -11,7 +11,7 @@ def create_lstm_32(frames, matrix_rows, matrix_cols, channels):
     """
     Generate 32-unit LSTM model
     """
-    reg = k.regularizers.l1_l2(0.0001, 0.0001)
+    reg = k.regularizers.l1_l2(0.001, 0.001)
     _model = k.models.Sequential(name='asd_lstm_32', layers=[
         k.layers.Input(shape=(frames, matrix_rows, matrix_cols, channels)),
         k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
@@ -20,7 +20,7 @@ def create_lstm_32(frames, matrix_rows, matrix_cols, channels):
         k.layers.Dense(64, activation='sigmoid', kernel_regularizer=reg, name='dense'),
         k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
-    _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.01, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -28,10 +28,8 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     """
     Generate 32-unit 1D Convolution model
     """
-    reg = k.regularizers.l1_l2(0.0001, 0.0001)
+    reg = k.regularizers.l1_l2(0.001, 0.001)
     conv_1d_spec = {
-        'kernel_size': 250,
-        'strides': 2,
         'activation': 'relu',
         'kernel_regularizer': reg,
         'padding': 'same'
@@ -39,12 +37,14 @@ def create_conv_32(frames, matrix_rows, matrix_cols, channels):
     _model = k.models.Sequential(name='asd_conv_32', layers=[
         k.layers.Input(shape=(frames, matrix_rows, matrix_cols, channels)),
         k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
-        k.layers.Conv1D(filters=32, **conv_1d_spec, name='conv_1d'),
-        k.layers.GlobalMaxPooling1D(name='pool_1d'),
-        k.layers.Dense(64, activation='sigmoid', kernel_regularizer=reg, name='dense'),
+        k.layers.Conv1D(filters=16, kernel_size=32, strides=1, **conv_1d_spec, name='conv_1'),
+        k.layers.MaxPooling1D(name='pool_1'),
+        k.layers.Dropout(rate=0.1, name='dropout_1'),
+        k.layers.Conv1D(filters=32, kernel_size=32, strides=1, **conv_1d_spec, name='conv_2'),
+        k.layers.GlobalMaxPooling1D(name='pool_2'),
         k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
-    _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.01, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
+    _model.compile(optimizer=k.optimizers.SGD(learning_rate=0.001, momentum=0.9), loss='binary_crossentropy', metrics=['accuracy'])
     return _model
 
 
@@ -62,6 +62,8 @@ if __name__ == '__main__':
     # normalize X
     print('normalizing data...')
     X = (X - np.min(X)) / (np.max(X) - np.min(X))
+    Y = (Y - np.min(Y)) / (np.max(Y) - np.min(Y))
+    Z = (Z - np.min(Z)) / (np.max(Z) - np.min(Z))
     print('OK')
 
     print('Creating Models...')
