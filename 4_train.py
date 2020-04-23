@@ -37,10 +37,10 @@ def create_conv_32(frames, ch_rows, ch_cols, bands):
     _model = k.models.Sequential(name='asd_conv_32', layers=[
         k.layers.Input(shape=(frames, ch_rows, ch_cols, bands)),
         k.layers.TimeDistributed(k.layers.GlobalMaxPooling2D(), name='eeg'),  # shape: (frames, bands)
-        k.layers.Conv1D(filters=16, kernel_size=32, strides=1, **conv_1d_spec, name='conv_1'),
+        k.layers.Conv1D(filters=16, kernel_size=4, strides=1, **conv_1d_spec, name='conv_1'),
         k.layers.MaxPooling1D(name='pool_1'),
         k.layers.Dropout(rate=0.1, name='dropout_1'),
-        k.layers.Conv1D(filters=32, kernel_size=32, strides=1, **conv_1d_spec, name='conv_2'),
+        k.layers.Conv1D(filters=32, kernel_size=4, strides=1, **conv_1d_spec, name='conv_2'),
         k.layers.GlobalMaxPooling1D(name='pool_2'),
         k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
