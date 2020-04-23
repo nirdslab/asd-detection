@@ -44,7 +44,7 @@ if __name__ == '__main__':
         # interpolate bad columns
         _info = mne.create_info(ch_names=_cols, sfreq=250, ch_types='eeg')  # type: dict
         _info['bads'] = _bads
-        data = mne.io.RawArray(data=_in.to_numpy().transpose(), info=_info)
+        data = mne.io.RawArray(data=_in.to_numpy().transpose() * 1e-6, info=_info)
         data.set_montage('standard_1020')
         data.interpolate_bads(reset_bads=True)
         # append to output
