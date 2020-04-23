@@ -16,6 +16,7 @@ def create_lstm_64(frames, ch_rows, ch_cols, bands):
         k.layers.Input(shape=(frames, ch_rows, ch_cols, bands)),
         k.layers.TimeDistributed(k.layers.GlobalMaxPooling2D(), name='eeg'),  # shape: (frames, bands)
         k.layers.LSTM(64, kernel_regularizer=reg, name='lstm_1'),
+        k.layers.Dropout(0.2),
         k.layers.Dense(32, activation='sigmoid', kernel_regularizer=reg, name='dense'),
         k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
     ])
@@ -38,6 +39,7 @@ def create_conv_64(frames, ch_rows, ch_cols, bands):
         k.layers.TimeDistributed(k.layers.GlobalMaxPooling2D(), name='eeg'),  # shape: (frames, bands)
         k.layers.Conv1D(filters=32, kernel_size=4, **conv_1d_spec, name='conv_1'),
         k.layers.MaxPooling1D(name='pool_1'),
+        k.layers.Dropout(0.2),
         k.layers.Conv1D(filters=64, kernel_size=4, **conv_1d_spec, name='conv_2'),
         k.layers.GlobalMaxPooling1D(name='pool_2'),
         k.layers.Dense(1, activation='sigmoid', kernel_regularizer=reg, name='prediction')
