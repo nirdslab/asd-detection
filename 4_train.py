@@ -72,13 +72,13 @@ if __name__ == '__main__':
     print('OK')
 
     print('Evaluating...')
-    optimizer = k.optimizers.SGD(learning_rate=0.001, momentum=0.9, nesterov=True)
+    optimizer = k.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
     for model in models:
         filepath = f'weights/{model.name}.hdf5'
-        save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
+        save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
         # build model
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
         model.summary()
         # fit model
-        model.fit(X, Y, batch_size=64, epochs=200, validation_split=0.25, callbacks=[save_best])
+        model.fit(X, Y, batch_size=64, epochs=200, verbose=2, validation_split=0.25, callbacks=[save_best])
     print('Done')
