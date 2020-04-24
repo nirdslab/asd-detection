@@ -4,49 +4,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras as k
 
+import models
+
 tf.random.set_seed(42)
-
-
-def create_lstm_model(frames, ch_rows, ch_cols, bands):
-    """
-    Generate LSTM model
-    """
-    return k.models.Sequential(name='asd_lstm_32', layers=[
-        # inout
-        k.layers.Input(shape=(frames, ch_rows, ch_cols, bands)),
-        k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
-        # lstm 1
-        k.layers.LSTM(32, return_sequences=True, dropout=0.2, name='lstm_1'),
-        # lstm 2
-        k.layers.LSTM(64, dropout=0.2, name='lstm_2'),
-        # prediction
-        k.layers.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='prediction')
-    ])
-
-
-def create_conv_model(frames, ch_rows, ch_cols, bands):
-    """
-    Generate 1D Convolution model
-    """
-    return k.models.Sequential(name='asd_conv_32', layers=[
-        # input
-        k.layers.Input(shape=(frames, ch_rows, ch_cols, bands)),
-        k.layers.TimeDistributed(k.layers.Flatten(), name='eeg'),
-        # convolution 1
-        k.layers.Conv1D(filters=64, kernel_size=4, activation='relu', kernel_regularizer='l1_l2', padding='same', name='conv_1'),
-        k.layers.MaxPooling1D(name='pool_1'),
-        k.layers.Dropout(0.2, name='dropout_1'),
-        k.layers.BatchNormalization(name='batch_norm_1'),
-        # convolution 2
-        k.layers.Conv1D(filters=128, kernel_size=4, activation='relu', kernel_regularizer='l1_l2', padding='same', name='conv_2'),
-        k.layers.MaxPooling1D(name='pool_2'),
-        k.layers.Dropout(0.2, name='dropout_2'),
-        k.layers.BatchNormalization(name='batch_norm_2'),
-        # prediction
-        k.layers.Flatten(name='flatten'),
-        k.layers.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='prediction')
-    ])
-
 
 if __name__ == '__main__':
     # load dataset
@@ -68,11 +28,16 @@ if __name__ == '__main__':
 
     print('Creating Models...', end=' ', flush=True)
     sample_shape = X.shape[1:]
-    models = [create_conv_model(*sample_shape), create_lstm_model(*sample_shape)]
+    models = [
+        # time-major models
+        models.conv_net_time_major(*sample_shape),
+        models.lstm_time_major(*sample_shape)
+        # channel-major models
+    ]
     print('OK')
 
     print('Evaluating...')
-    optimizer = k.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
+    optimizer = k.optimizers.Adam(learning_rate=0.0001)
     for model in models:
         filepath = f'weights/{model.name}.hdf5'
         save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
@@ -80,5 +45,5 @@ if __name__ == '__main__':
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
         model.summary()
         # fit model
-        model.fit(X, Y, batch_size=64, epochs=200, verbose=2, validation_split=0.25, callbacks=[save_best])
+        model.fit(X, Y, batch_size=64, epochs=1000, verbose=2, validation_split=0.25, callbacks=[save_best])
     print('Done')
