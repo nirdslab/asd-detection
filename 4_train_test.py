@@ -91,7 +91,9 @@ if __name__ == '__main__':
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
             # build model
-            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics={'label': 'accuracy', 'score': 'mae'})
+            model.compile(optimizer=optimizer,
+                          loss={'label': 'binary_crossentropy', 'score': 'mean_squared_error'},
+                          metrics={'label': 'accuracy', 'score': 'mae'})
             model.summary()
             # training phase
             if training:
