@@ -18,7 +18,7 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
 
     # == output layer(s) ==
     ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
-    ol_r = kl.Dense(1, activation='linear', kernel_regularizer='l1_l2', name='score')(ml)
+    ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_lstm')
@@ -48,7 +48,7 @@ def conv_nn_time_major(timesteps, ch_rows, ch_cols, bands):
 
     # == output layer(s) ==
     ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
-    ol_r = kl.Dense(1, activation='linear', kernel_regularizer='l1_l2', name='score')(ml)
+    ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_conv_tm')
@@ -78,7 +78,7 @@ def conv_nn_channel_major(ch_rows, ch_cols, timesteps, bands):
 
     # == output layer(s) ==
     ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
-    ol_r = kl.Dense(1, activation='linear', kernel_regularizer='l1_l2', name='score')(ml)
+    ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_conv_cm')

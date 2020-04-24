@@ -93,6 +93,7 @@ if __name__ == '__main__':
             # build model
             model.compile(optimizer=optimizer,
                           loss={'label': 'binary_crossentropy', 'score': 'mse'},
+                          loss_weights={'label': 1.0, 'score': 2.0},
                           metrics={'label': 'accuracy', 'score': 'mse'})
             model.summary()
             # training phase
