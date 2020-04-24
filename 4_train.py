@@ -53,7 +53,8 @@ if __name__ == '__main__':
     print('loading dataset...', end=' ', flush=True)
     data = np.load('data/data-processed-bands.npz')
     X, Y, Z = [data['x'], data['y'], data['z']]  # type: np.ndarray
-    print(f'OK, X={X.shape}, Y={Y.shape}, Z={Z.shape}')
+    print('OK')
+    print(f'X={X.shape}, Y={Y.shape}, Z={Z.shape}')
 
     # normalize x
     print('normalizing X...', end=' ', flush=True)
@@ -73,13 +74,11 @@ if __name__ == '__main__':
     print('Evaluating...')
     optimizer = k.optimizers.SGD(learning_rate=0.001, momentum=0.9, nesterov=True)
     for model in models:
-        print('=' * 100)
-        print(f'Model: {model.name}')
-        print(f'Total Params: {model.count_params():,}')
-        print('_' * 100)
         filepath = f'weights/{model.name}.hdf5'
         save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
+        # build model
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+        model.summary()
+        # fit model
         model.fit(X, Y, batch_size=64, epochs=200, validation_split=0.25, callbacks=[save_best])
-        print('=' * 100)
     print('Done')
