@@ -29,14 +29,17 @@ if __name__ == '__main__':
     print('Creating Models...', end=' ', flush=True)
     sample_shape = X.shape[1:]
     models = [
-        # time-major models
-        models.conv_net_time_major(*sample_shape),
-        models.lstm_time_major(*sample_shape)
-        # channel-major models
+        # 1D convolution models
+        models.conv_nn_channel_major(*sample_shape),
+        models.conv_nn_time_major(*sample_shape),
+        # LSTM models
+        models.lstm_nn(*sample_shape)
     ]
     print('OK')
 
     print('Evaluating...')
+    import os
+
     optimizer = k.optimizers.Adam(learning_rate=0.0001)
     for model in models:
         filepath = f'weights/{model.name}.hdf5'
@@ -44,6 +47,9 @@ if __name__ == '__main__':
         # build model
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
         model.summary()
+        # load existing weights if exists
+        if os.path.exists(filepath):
+            model.load_weights(filepath)
         # fit model
         model.fit(X, Y, batch_size=64, epochs=1000, verbose=2, validation_split=0.25, callbacks=[save_best])
     print('Done')
