@@ -4,6 +4,7 @@ Neural Architectures for Detection of ASD using EEG data
 
 ## Results
 ```
+Training and Evaluation
 Model: "asd_conv_cm"
 __________________________________________________________________________________________________
 Layer (type)                    Output Shape         Param #     Connected to                     
@@ -38,7 +39,7 @@ Total params: 46,530
 Trainable params: 46,146
 Non-trainable params: 384
 __________________________________________________________________________________________________
-168/168 [==============================] - 0s 2ms/sample - loss: 14.5948 - label_loss: 0.3972 - score_loss: 11.4186 - label_accuracy: 0.8155 - score_mae: 2.4273
+168/168 [==============================] - 0s 3ms/sample - loss: 14.5948 - label_loss: 0.3972 - score_loss: 11.4186 - label_accuracy: 0.8155 - score_mse: 11.9014
 Model: "asd_conv_tm"
 __________________________________________________________________________________________________
 Layer (type)                    Output Shape         Param #     Connected to                     
@@ -73,7 +74,7 @@ Total params: 46,530
 Trainable params: 46,146
 Non-trainable params: 384
 __________________________________________________________________________________________________
-168/168 [==============================] - 0s 1ms/sample - loss: 9.9170 - label_loss: 0.1064 - score_loss: 6.0953 - label_accuracy: 0.9702 - score_mae: 1.7669
+168/168 [==============================] - 0s 2ms/sample - loss: 9.9170 - label_loss: 0.1064 - score_loss: 6.0953 - label_accuracy: 0.9702 - score_mse: 6.1613
 Model: "asd_lstm"
 __________________________________________________________________________________________________
 Layer (type)                    Output Shape         Param #     Connected to                     
@@ -94,6 +95,7 @@ Total params: 34,946
 Trainable params: 34,946
 Non-trainable params: 0
 __________________________________________________________________________________________________
-168/168 [==============================] - 0s 3ms/sample - loss: 8.6611 - label_loss: 0.1979 - score_loss: 6.0893 - label_accuracy: 0.9167 - score_mae: 1.5238
+168/168 [==============================] - 1s 7ms/sample - loss: 8.6611 - label_loss: 0.1979 - score_loss: 6.0893 - label_accuracy: 0.9167 - score_mse: 6.0453
+Done
 ```
 
