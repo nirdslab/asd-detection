@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as k

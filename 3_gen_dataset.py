@@ -72,7 +72,26 @@ if __name__ == '__main__':
         print()
     print('OK')
 
+    # converting wavelet coefficients to absolute values
+    print('Getting absolute values of wavelet coefficients')
+    _x = np.abs(_x).astype(np.float32)  # type: np.ndarray
+    print('OK')
+
     # save x, y, and z
-    print('Saving x, y, and z')
-    np.savez_compressed('data/data-final.npz', x=_x, y=_y, z=_z)
+    print('Saving processed data')
+    np.savez_compressed('data/data-processed.npz', x=_x, y=_y, z=_z)
+    print('OK')
+
+    # extract delta, theta, alpha, beta, and gamma frequency bands
+    print('Reducing to frequency bands')
+    delta = _x[..., 0:4]  # ( <= 4 Hz)
+    theta = _x[..., 3:8]  # (4 - 8 Hz)
+    alpha = _x[..., 7:16]  # (8 - 16 Hz)
+    beta = _x[..., 15:32]  # (16 - 32 Hz)
+    gamma = _x[..., 31:]  # ( >= 32 Hz)
+    _xb = np.stack([np.max(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1).astype(np.float32)  # type: np.ndarray
+    print('OK')
+
+    print('Saving frequency band data')
+    np.savez_compressed('data/data-processed-bands.npz', x=_xb, y=_y, z=_z)
     print('OK')
