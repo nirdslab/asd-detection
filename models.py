@@ -1,4 +1,3 @@
-import tensorflow as tf
 from tensorflow import keras as k
 from tensorflow.keras import layers as kl, models as km
 
@@ -44,17 +43,15 @@ def conv_nn_time_major(timesteps, ch_rows, ch_cols, bands):
     ])
 
 
-def conv_nn_channel_major(timesteps, ch_rows, ch_cols, bands):
+def conv_nn_channel_major(ch_rows, ch_cols, timesteps, bands):
     """
     Generate 1D-convolution NN model, with channel dimension addressed first
     """
     return km.Sequential(name='asd_conv_cm', layers=[
         # input
-        kl.Input(shape=(timesteps, ch_rows, ch_cols, bands)),
-        # swap dimensions to (?, ch_rows, ch_cols, timesteps, bands)
-        kl.Lambda(lambda data: tf.transpose(data, perm=[0, 2, 3, 1, 4]), name='eeg'),
+        kl.Input(shape=(ch_rows, ch_cols, timesteps, bands)),
         # reshape input to dimensions (channels, timesteps, bands)
-        kl.Reshape(target_shape=(ch_rows * ch_cols, timesteps, bands), name='reshape'),
+        kl.Reshape(target_shape=(ch_rows * ch_cols, timesteps, bands), name='eeg'),
         # convolution 1
         kl.TimeDistributed(kl.Conv1D(filters=64, kernel_size=4, activation='relu', kernel_regularizer='l1_l2', padding='same'), name='conv_1'),
         kl.TimeDistributed(kl.MaxPooling1D(), name='pool_1'),
