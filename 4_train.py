@@ -84,5 +84,6 @@ if __name__ == '__main__':
             # train
             model.fit(x_tr, y_tr, batch_size=64, epochs=1000, verbose=2, validation_data=(x_dv, y_dv), callbacks=[save_best])
             # evaluate
+            model.load_weights(filepath)
             model.evaluate(x_ts, y_ts)
     print('Done')
