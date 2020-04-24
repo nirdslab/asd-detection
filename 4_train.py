@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from typing import List, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -9,6 +10,21 @@ from tensorflow import keras as k
 import models
 
 tf.random.set_seed(42)
+
+
+def train_dev_test_split(_x: np.ndarray, _y: np.ndarray, _z: np.ndarray, r_dev: float, r_test: float, rand_state: int):
+    """
+    train/dev/test split at given ratios
+    """
+    from sklearn.model_selection import train_test_split
+    assert r_dev + r_test < 1
+    r1 = r_dev + r_test
+    r2 = r_test / r1
+    _x_tr, _x_ts, _y_tr, _y_ts, _z_tr, _z_ts = train_test_split(_x, _y, _z, test_size=r1, shuffle=True, random_state=rand_state)
+    _x_dv, _x_ts, _y_dv, _y_ts, _z_dv, _z_ts = train_test_split(_x_ts, _y_ts, _z_ts, test_size=r2, shuffle=True, random_state=rand_state)
+    result = [_x_tr, _x_dv, _x_ts], [_y_tr, _y_dv, _y_ts], [_z_tr, _z_dv, _z_ts]  # type: Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]
+    return result
+
 
 if __name__ == '__main__':
     # load dataset
@@ -31,34 +47,42 @@ if __name__ == '__main__':
     # generate time-major and channel-major data
     # NOTE: this was done to avoid repeated transposition, which is computationally expensive
     print('creating time-major and channel-major data...', end=' ', flush=True)
-    X_TM = X
-    X_CM = tf.transpose(X, perm=[0, 2, 3, 1, 4]).numpy()
+    # time-major data
+    DATA_TM = [X, Y, Z]
+    TM_SAMPLE_SHAPE = DATA_TM[0].shape[1:]
+    # channel-major data
+    DATA_CM = [tf.transpose(X, perm=[0, 2, 3, 1, 4]).numpy(), Y, Z]  # type: List[np.ndarray]
+    CM_SAMPLE_SHAPE = DATA_CM[0].shape[1:]
     print('OK')
 
     print('Creating Models...', end=' ', flush=True)
-    channel_major_models = [
-        models.conv_nn_channel_major(*X_CM.shape[1:])
-    ]
     time_major_models = [
-        models.conv_nn_time_major(*X_TM.shape[1:]),
-        models.lstm_nn(*X_TM.shape[1:])
+        models.conv_nn_time_major(*TM_SAMPLE_SHAPE),
+        models.lstm_nn(*TM_SAMPLE_SHAPE)
+    ]
+    channel_major_models = [
+        models.conv_nn_channel_major(*CM_SAMPLE_SHAPE)
     ]
     print('OK')
 
-    print('Evaluating...')
+    print('Training and Evaluation')
     optimizer = k.optimizers.Adam(learning_rate=0.0001)
     # iterate each model type
-    for models, features in [(channel_major_models, X_CM), (time_major_models, X_TM)]:
-        # iterate each model in the type
+    for models, [x, y, z] in [(channel_major_models, DATA_CM), (time_major_models, DATA_TM)]:
+        # train-dev-test split at 60-20-20 ratio
+        [x_tr, x_dv, x_ts], [y_tr, y_dv, y_ts], [z_tr, z_dv, z_ts] = train_dev_test_split(x, y, z, r_dev=0.2, r_test=0.2, rand_state=42)
+        # training phase
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
             save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
             # build model
             model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
             model.summary()
-            # load existing weights if exists
+            # load pre-trained weights when available
             if os.path.exists(filepath):
                 model.load_weights(filepath)
-            # fit model
-            model.fit(features, Y, batch_size=64, epochs=1000, verbose=2, validation_split=0.25, callbacks=[save_best])
+            # train
+            model.fit(x_tr, y_tr, batch_size=64, epochs=1000, verbose=2, validation_data=(x_dv, y_dv), callbacks=[save_best])
+            # evaluate
+            model.evaluate(x_ts, y_ts)
     print('Done')
