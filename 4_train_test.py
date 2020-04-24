@@ -34,14 +34,15 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         print('Arguments: [ train | test ]')
         exit(1)
-    mode = sys.argv[1].strip().lower()
-    if mode not in ['train', 'test']:
-        print('Arguments: [OPTIONAL] [ train | test ]')
-        exit(1)
-    if mode == 'train':
-        testing = False
-    elif mode == 'test':
-        training = False
+    elif len(sys.argv) == 2:
+        mode = sys.argv[1].strip().lower()
+        if mode not in ['train', 'test']:
+            print('Arguments: [OPTIONAL] [ train | test ]')
+            exit(1)
+        if mode == 'train':
+            testing = False
+        elif mode == 'test':
+            training = False
 
     # load dataset
     print('loading dataset...', end=' ', flush=True)
@@ -90,7 +91,7 @@ if __name__ == '__main__':
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
             # build model
-            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics={'label': 'accuracy', 'score': 'mae'})
             model.summary()
             # training phase
             if training:
@@ -99,9 +100,9 @@ if __name__ == '__main__':
                     model.load_weights(filepath)
                 # train
                 save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
-                model.fit(x_tr, y_tr, batch_size=64, epochs=1000, validation_data=(x_dv, y_dv), callbacks=[save_best])
+                model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=1000, validation_data=(x_dv, [y_dv, z_dv]), callbacks=[save_best])
             # testing phase
             if testing:
                 model.load_weights(filepath)
-                model.evaluate(x_ts, y_ts)
+                model.evaluate(x_ts, [y_ts, z_ts])
     print('Done')
