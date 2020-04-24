@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 from typing import List, Tuple
 
 import numpy as np
@@ -27,6 +28,21 @@ def train_dev_test_split(_x: np.ndarray, _y: np.ndarray, _z: np.ndarray, r_dev: 
 
 
 if __name__ == '__main__':
+    # parse command line arguments
+    training = True
+    testing = True
+    if len(sys.argv) > 2:
+        print('Arguments: [ train | test ]')
+        exit(1)
+    mode = sys.argv[1].strip().lower()
+    if mode not in ['train', 'test']:
+        print('Arguments: [OPTIONAL] [ train | test ]')
+        exit(1)
+    if mode == 'train':
+        testing = False
+    elif mode == 'test':
+        training = False
+
     # load dataset
     print('loading dataset...', end=' ', flush=True)
     dataset = np.load('data/data-processed-bands.npz')
@@ -71,19 +87,21 @@ if __name__ == '__main__':
     for models, [x, y, z] in [(channel_major_models, DATA_CM), (time_major_models, DATA_TM)]:
         # train-dev-test split at 60-20-20 ratio
         [x_tr, x_dv, x_ts], [y_tr, y_dv, y_ts], [z_tr, z_dv, z_ts] = train_dev_test_split(x, y, z, r_dev=0.2, r_test=0.2, rand_state=42)
-        # training phase
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
-            save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
-            # build model
-            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
-            model.summary()
-            # load pre-trained weights when available
-            if os.path.exists(filepath):
+            # training phase
+            if training:
+                save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
+                # build model
+                model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+                model.summary()
+                # load pre-trained weights when available
+                if os.path.exists(filepath):
+                    model.load_weights(filepath)
+                # train
+                model.fit(x_tr, y_tr, batch_size=64, epochs=1000, validation_data=(x_dv, y_dv), callbacks=[save_best])
+            # testing phase
+            if testing:
                 model.load_weights(filepath)
-            # train
-            model.fit(x_tr, y_tr, batch_size=64, epochs=1000, validation_data=(x_dv, y_dv), callbacks=[save_best])
-            # evaluate
-            model.load_weights(filepath)
-            model.evaluate(x_ts, y_ts)
+                model.evaluate(x_ts, y_ts)
     print('Done')
