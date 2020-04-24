@@ -74,7 +74,7 @@ if __name__ == '__main__':
         # training phase
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
-            save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=1)
+            save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
             # build model
             model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
             model.summary()
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             if os.path.exists(filepath):
                 model.load_weights(filepath)
             # train
-            model.fit(x_tr, y_tr, batch_size=64, epochs=1000, verbose=2, validation_data=(x_dv, y_dv), callbacks=[save_best])
+            model.fit(x_tr, y_tr, batch_size=64, epochs=1000, validation_data=(x_dv, y_dv), callbacks=[save_best])
             # evaluate
             model.load_weights(filepath)
             model.evaluate(x_ts, y_ts)
