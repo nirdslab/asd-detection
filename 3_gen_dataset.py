@@ -28,7 +28,7 @@ if __name__ == '__main__':
     NUM_BANDS = 50  # number of frequency bands in final result
     BANDS = np.arange(NUM_BANDS) + 1  # frequencies (1 Hz - 50 Hz)
     SLICE_WINDOW = 10  # secs per slice
-    SLICE_STEP = 5  # secs to step to get next slice
+    SLICE_STEP = 10  # secs to step to get next slice
     K = 2  # slice resolution (in Hz)
     SLICE_SHAPE = (SLICE_WINDOW * K, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 
