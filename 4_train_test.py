@@ -89,16 +89,16 @@ if __name__ == '__main__':
         [x_tr, x_dv, x_ts], [y_tr, y_dv, y_ts], [z_tr, z_dv, z_ts] = train_dev_test_split(x, y, z, r_dev=0.2, r_test=0.2, rand_state=42)
         for model in models:
             filepath = f'weights/{model.name}.hdf5'
+            # build model
+            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+            model.summary()
             # training phase
             if training:
-                save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
-                # build model
-                model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
-                model.summary()
                 # load pre-trained weights when available
                 if os.path.exists(filepath):
                     model.load_weights(filepath)
                 # train
+                save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
                 model.fit(x_tr, y_tr, batch_size=64, epochs=1000, validation_data=(x_dv, y_dv), callbacks=[save_best])
             # testing phase
             if testing:
