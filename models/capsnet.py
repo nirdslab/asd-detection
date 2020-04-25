@@ -77,14 +77,14 @@ class Metrics:
 
 class CapsConv2D(k.layers.Conv2D):
 
-    def __init__(self, filters, kernel_size, dim_caps, **kwargs):
-        assert filters > dim_caps and filters % dim_caps == 0
-        self.dim_caps = dim_caps
-        super().__init__(filters, kernel_size, **kwargs)
+    def __init__(self, caps_layers, caps_dims, kernel_size, **kwargs):
+        self.caps_layers = caps_layers
+        self.caps_dims = caps_dims
+        super().__init__(self.caps_layers * self.caps_dims, kernel_size, **kwargs)
 
     def call(self, inputs, **kwargs):
         result = super(CapsConv2D, self).call(inputs)
-        result = tf.reshape(result, shape=(-1, result.shape[1], result.shape[2], result.shape[3] // self.dim_caps, self.dim_caps))
+        result = tf.reshape(result, shape=(-1, result.shape[1], result.shape[2], result.shape[3] // self.caps_dims, self.caps_dims))
         return Activations.squash(result, axis=-1)
 
 
@@ -224,7 +224,7 @@ def create_capsnet_model(input_shape, name) -> k.Model:
     # initial convolution
     l2 = k.layers.Conv2D(filters=256, kernel_size=(9, 9), strides=(1, 1), activation='relu', name='conv')(l1)  # type: tf.Tensor
     # convolution capsule layer
-    l3 = CapsConv2D(filters=32, dim_caps=8, kernel_size=(9, 9), strides=(2, 2), activation='relu', name='conv_caps')(l2)  # type: tf.Tensor
+    l3 = CapsConv2D(caps_layers=32, caps_dims=8, kernel_size=(9, 9), strides=(2, 2), activation='relu', name='conv_caps')(l2)  # type: tf.Tensor
     # dense capsule layer with dynamic routing
     l4 = CapsDense(num_caps=10, dim_caps=16, routing_iter=3, name='dense_caps')(l3)  # type: tf.Tensor
     # decoder
