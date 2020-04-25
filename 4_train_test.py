@@ -74,8 +74,9 @@ if __name__ == '__main__':
 
     print('Creating Models...', end=' ', flush=True)
     time_major_models = [
-        models.conv_nn_time_major(*TM_SAMPLE_SHAPE),
-        models.lstm_nn(*TM_SAMPLE_SHAPE)
+        models.capsule_nn(*TM_SAMPLE_SHAPE),
+        models.lstm_nn(*TM_SAMPLE_SHAPE),
+        models.conv_nn_time_major(*TM_SAMPLE_SHAPE)
     ]
     channel_major_models = [
         models.conv_nn_channel_major(*CM_SAMPLE_SHAPE)
@@ -85,7 +86,7 @@ if __name__ == '__main__':
     print('Training and Evaluation')
     optimizer = k.optimizers.Adam(learning_rate=0.0001)
     # iterate each model type
-    for models, [x, y, z] in [(channel_major_models, DATA_CM), (time_major_models, DATA_TM)]:
+    for models, [x, y, z] in [(time_major_models, DATA_TM), (channel_major_models, DATA_CM)]:
         # train-dev-test split at 60-20-20 ratio
         [x_tr, x_dv, x_ts], [y_tr, y_dv, y_ts], [z_tr, z_dv, z_ts] = train_dev_test_split(x, y, z, r_dev=0.2, r_test=0.2, rand_state=42)
         for model in models:
@@ -93,7 +94,6 @@ if __name__ == '__main__':
             # build model
             model.compile(optimizer=optimizer,
                           loss={'label': 'binary_crossentropy', 'score': 'mse'},
-                          loss_weights={'label': 1.0, 'score': 2.0},
                           metrics={'label': 'accuracy', 'score': 'mse'})
             model.summary()
             # training phase
