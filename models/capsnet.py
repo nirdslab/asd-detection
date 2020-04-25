@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 
 import numpy as np
@@ -12,92 +12,83 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
-def squash(_data, axis=-1):
-    squared_norm = tf.reduce_sum(tf.square(_data), axis=axis, keepdims=True)
-    squash_factor = squared_norm / (1. + squared_norm)
-    unit_vector = _data / tf.sqrt(squared_norm + k.backend.epsilon())
-    return squash_factor * unit_vector
+class Activations:
+
+    @staticmethod
+    def squash(_data, axis=-1):
+        """
+        Normalize to unit vectors
+        :param _data: Tensor with rank >= 2
+        :param axis:
+        :return:
+        """
+        square_sum = tf.reduce_sum(tf.square(_data), axis=axis, keepdims=True)
+        squash_factor = square_sum / (1. + square_sum)
+        unit_vector = _data / tf.sqrt(square_sum + k.backend.epsilon())
+        return squash_factor * unit_vector
 
 
-def safe_l2_norm(_data, axis=-1, keepdims=False):
-    squared_norm = tf.reduce_sum(tf.square(_data), axis=axis, keepdims=keepdims)
-    return tf.sqrt(squared_norm + k.backend.epsilon())
+class Losses:
+
+    @staticmethod
+    def margin_loss(_y_true, _y_pred, _m_p=0.9, _m_n=0.1, _lambda=0.5):
+        """
+        Loss Function
+        :param _y_true: shape: (None, num_caps)
+        :param _y_pred: shape: (None, num_caps)
+        :param _m_p: threshold for positive
+        :param _m_n: threshold for negative
+        :param _lambda: loss weight for negative
+        :return: margin loss. shape: (None, )
+        """
+        p_err = tf.maximum(0., _m_p - _y_pred)  # shape: (None, num_caps)
+        n_err = tf.maximum(0., _y_pred - _m_n)  # shape: (None, num_caps)
+        p_loss = _y_true * tf.square(p_err)  # shape: (None, num_caps)
+        n_loss = (1.0 - _y_true) * tf.square(n_err)  # shape: (None, num_caps)
+        loss = tf.reduce_mean(p_loss + _lambda * n_loss, axis=-1)  # shape: (None, )
+        return loss
+
+    @staticmethod
+    def reconstruction_loss(_y_true, _y_pred):
+        """
+        Mean Squared Error
+
+        :param _y_true: shape: (None, 28, 28, 1)
+        :param _y_pred: shape: (None, 28, 28, 1)
+        :return:
+        """
+        return tf.reduce_mean(tf.square(_y_true - _y_pred))
 
 
-def mask(_data):
-    """
-    Mask data from all capsules except the most activated one, for each instance
-    :param _data: shape: (None, num_caps, dim_caps)
-    :return:
-    """
-    _norm = safe_l2_norm(_data)
-    # shape: (None, num_caps)
-    _y_pred = tf.argmax(_norm, axis=-1)
-    # shape: (None, )
-    _mask = tf.expand_dims(tf.one_hot(_y_pred, depth=digit_caps_spec['num_caps']), axis=-1)
-    # shape: (None, num_caps, 1)
-    _masked = tf.multiply(_data, _mask)
-    # shape: (None, num_caps, dim_caps)
-    return _masked
+class Metrics:
+
+    @staticmethod
+    def accuracy(_y_true, _y_pred):
+        """
+        :param _y_true: shape: (None, num_caps)
+        :param _y_pred: shape: (None, num_caps)
+        :return:
+        """
+        _y_pred = tf.argmax(_y_pred, axis=-1)
+        _y_true = tf.argmax(_y_true, axis=-1)
+        correct = tf.equal(_y_true, _y_pred)
+        return tf.reduce_mean(tf.cast(correct, tf.float32))
 
 
-def embed(_data):
-    """
-    Generate embedding vector for each instance, using the data from the most activated capsule, and the label
-    :param _data: shape: (None, num_caps, dim_caps)
-    """
-    _norm = safe_l2_norm(_data)
-    # shape: (None, num_caps)
-    _y_pred = tf.argmax(_norm, axis=-1)
-    # shape: (None, )
-    _representation = tf.gather(_data, _y_pred, axis=-2, batch_dims=1)
-    # shape: (None, dim_caps)
-    return _representation
+class CapsConv2D(k.layers.Conv2D):
+
+    def __init__(self, filters, kernel_size, dim_caps, **kwargs):
+        assert filters > dim_caps and filters % dim_caps == 0
+        self.dim_caps = dim_caps
+        super().__init__(filters, kernel_size, **kwargs)
+
+    def call(self, inputs, **kwargs):
+        result = super(CapsConv2D, self).call(inputs)
+        result = tf.reshape(result, shape=(-1, result.shape[1], result.shape[2], result.shape[3] // self.dim_caps, self.dim_caps))
+        return Activations.squash(result, axis=-1)
 
 
-def margin_loss(_y_true, _y_pred, _m_plus=0.9, _m_minus=0.1, _lambda=0.5):
-    """
-    Loss Function
-    :param _y_true: shape: (None, num_caps)
-    :param _y_pred: shape: (None, num_caps)
-    :param _m_plus: scalar
-    :param _m_minus: scalar
-    :param _lambda: scalar
-    :return: margin loss. shape: (None, )
-    """
-    present_error = tf.square(tf.maximum(0., _m_plus - _y_pred))
-    absent_error = tf.square(tf.maximum(0., _y_pred - _m_minus))
-    loss = tf.add(_y_true * present_error, _lambda * (1.0 - _y_true) * absent_error)
-    # (None, num_caps)
-    _margin_loss = tf.reduce_mean(tf.reduce_sum(loss, axis=1))
-    # (None, )
-    return _margin_loss
-
-
-def reconstruction_loss(_y_true, _y_pred):
-    """
-    Calculate pixel-wise reconstruction loss
-    :param _y_true: shape: (None, 28, 28, 1)
-    :param _y_pred: shape: (None, 28, 28, 1)
-    :return:
-    """
-    units = np.prod(_input_shape)
-    return tf.reduce_mean(tf.square(tf.reshape(_y_true - _y_pred, shape=(-1, units))))
-
-
-def accuracy(_y_true, _y_pred):
-    """
-    :param _y_true: shape: (None, num_caps)
-    :param _y_pred: shape: (None, num_caps)
-    :return:
-    """
-    _y_pred = tf.argmax(_y_pred, axis=-1)
-    _y_true = tf.argmax(_y_true, axis=-1)
-    correct = tf.equal(_y_true, _y_pred)
-    return tf.reduce_mean(tf.cast(correct, tf.float32))
-
-
-class DigitCaps(k.layers.Layer):
+class CapsDense(k.layers.Layer):
 
     def __init__(self, num_caps, dim_caps, routing_iter, trainable=True, name=None, dtype=None, dynamic=False,
                  **kwargs):
@@ -120,11 +111,16 @@ class DigitCaps(k.layers.Layer):
         })
         return config
 
-    def build(self, input_shape):
-        self.p_num_caps = input_shape[-2]
-        self.p_dim_caps = input_shape[-1]
-        self.w = tf.random.normal(shape=(1, self.p_num_caps, self.num_caps, self.dim_caps, self.p_dim_caps), mean=0.0,
-                                 stddev=0.1, dtype=tf.float32)
+    def build(self, input_shape: tf.TensorShape):
+        assert input_shape.rank == 5
+        rows, cols, cap_layers = input_shape[1], input_shape[2], input_shape[3]
+        self.p_num_caps = rows * cols * cap_layers
+        self.p_dim_caps = input_shape[4]
+        self.w = self.add_weight(
+            shape=(1, self.p_num_caps, self.num_caps, self.dim_caps, self.p_dim_caps),
+            dtype=tf.float32,
+            initializer='random_normal'
+        )
         self.built = True
 
     @staticmethod
@@ -147,7 +143,7 @@ class DigitCaps(k.layers.Layer):
         w_prediction_sum = tf.reduce_sum(w_prediction, axis=1, keepdims=True)
         '''shape: (batch_size, 1, num_caps, dim_caps, 1)'''
 
-        squashed_w_prediction_sum = squash(w_prediction_sum, axis=-2)
+        squashed_w_prediction_sum = Activations.squash(w_prediction_sum, axis=-2)
         '''shape: (batch_size, 1, num_caps, dim_caps, 1)'''
 
         return squashed_w_prediction_sum
@@ -156,7 +152,8 @@ class DigitCaps(k.layers.Layer):
         # get batch size of input
         batch_size = tf.shape(inputs)[0]
         # reshape input
-        batch_input = tf.expand_dims(inputs, axis=-1)
+        flattened = tf.reshape(inputs, (batch_size, self.p_num_caps, self.p_dim_caps))
+        batch_input = tf.expand_dims(flattened, axis=-1)
         '''shape: (batch_size, p_num_caps, p_dim_caps, 1)'''
         batch_input = tf.expand_dims(batch_input, axis=2)
         '''shape: (batch_size, p_num_caps, 1, p_dim_caps, 1)'''
@@ -203,74 +200,61 @@ class DigitCaps(k.layers.Layer):
         return tf.reshape(final_prediction, shape=(-1, self.num_caps, self.dim_caps))
 
 
-if __name__ == '__main__':
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+def safe_l2_norm(_data, axis=-1, keepdims=False):
+    squared_norm = tf.reduce_sum(tf.square(_data), axis=axis, keepdims=keepdims)
+    return tf.sqrt(squared_norm + k.backend.epsilon())
 
+
+def max_mask(_data):
+    """
+    Mask data from all capsules except the most activated one, for each instance
+    :param _data: shape: (None, num_caps, dim_caps)
+    :return:
+    """
+    _norm = safe_l2_norm(_data, axis=-1)  # shape: (None, num_caps)
+    _y_pred = tf.argmax(_norm, axis=-1)  # shape: (None, )
+    _mask = tf.expand_dims(tf.one_hot(_y_pred, depth=_norm.shape[-1]), axis=-1)  # shape: (None, num_caps, 1)
+    _masked = tf.multiply(_data, _mask)  # shape: (None, num_caps, dim_caps)
+    return _masked
+
+
+def create_capsnet_model(input_shape, name) -> k.Model:
+    # input
+    l1 = k.layers.Input(shape=input_shape, name='input')  # type: tf.Tensor
+    # initial convolution
+    l2 = k.layers.Conv2D(filters=256, kernel_size=(9, 9), strides=(1, 1), activation='relu', name='conv')(l1)  # type: tf.Tensor
+    # convolution capsule layer
+    l3 = CapsConv2D(filters=32, dim_caps=8, kernel_size=(9, 9), strides=(2, 2), activation='relu', name='conv_caps')(l2)  # type: tf.Tensor
+    # dense capsule layer with dynamic routing
+    l4 = CapsDense(num_caps=10, dim_caps=16, routing_iter=3, name='dense_caps')(l3)  # type: tf.Tensor
+    # decoder
+    d0 = k.layers.Lambda(max_mask)(l4)  # type: tf.Tensor
+    d1 = k.layers.Flatten()(d0)  # type: k.layers.Layer
+    d2 = k.layers.Dense(512, activation='relu')(d1)  # type: tf.Tensor
+    d3 = k.layers.Dense(1024, activation='relu')(d2)  # type: tf.Tensor
+    d4 = k.layers.Dense(tf.reduce_prod(input_shape), activation='sigmoid')(d3)  # type: tf.Tensor
+    # output layers
+    margin = k.layers.Lambda(safe_l2_norm, name='margin')(l4)  # type: tf.Tensor
+    reconstruction = k.layers.Reshape(input_shape, name='reconstruction')(d4)  # type: tf.Tensor
+    # define the model
+    return k.models.Model(inputs=l1, outputs=[margin, reconstruction], name=name)
+
+
+if __name__ == '__main__':
+    NUM_CLASSES = 10
+    # load data
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    # normalize data
     x_train = x_train / 255.0
     x_test = x_test / 255.0
-
+    # one hot encode data
     x_train, x_test = x_train[..., np.newaxis], x_test[..., np.newaxis]
-    NUM_CLASSES = 10
     y_train, y_test = k.utils.to_categorical(y_train, NUM_CLASSES), k.utils.to_categorical(y_test, NUM_CLASSES)
 
-    _input_shape = x_train.shape[1:]
-    _output_shape = y_train.shape[1:]
-
-    # CAPSULE NETWORK ARCHITECTURE ---
-    conv_1_spec = {
-        'filters': 256,
-        'kernel_size': (9, 9),
-        'strides': (1, 1),
-        'activation': 'relu'
-    }
-
-    # capsule 1 spec
-    num_filters = 32
-    dim_cap_1 = 8
-
-    conv_2_spec = {
-        'filters': num_filters,
-        'kernel_size': (9, 9),
-        'strides': (2, 2),
-        'activation': 'relu'
-    }
-
-    digit_caps_spec = {
-        'num_caps': 10,
-        'dim_caps': 16,
-        'routing_iter': 3
-    }
-
-    # input
-    l1 = k.layers.Input(shape=_input_shape)
-
-    # initial convolution
-    l2 = k.layers.Conv2D(**conv_1_spec)(l1)
-
-    # primary caps (convolution + reshape + squash)
-    l3 = k.layers.Conv2D(**conv_2_spec)(l2)
-    l4 = k.layers.Reshape((np.prod(l3.shape[1:]) // dim_cap_1, dim_cap_1))(l3)
-    l5 = k.layers.Lambda(squash)(l4)
-
-    # digit caps (routing based on agreement -> weighted prediction)
-    l6 = DigitCaps(**digit_caps_spec)(l5)
-
-    # predictions (None, dim_caps)
-    l7 = k.layers.Lambda(safe_l2_norm, name='margin')(l6)
-
-    # masking layer
-    l8 = k.layers.Lambda(mask)(l6)
-
-    # decoder
-    d0 = k.layers.Flatten()(l8)
-    d1 = k.layers.Dense(512, activation='relu')(d0)
-    d2 = k.layers.Dense(1024, activation='relu')(d1)
-    d3 = k.layers.Dense(np.prod(_input_shape), activation='sigmoid')(d2)
-    d4 = k.layers.Reshape(_input_shape, name='reconstruction')(d3)
-
-    # define the model
-    model = k.models.Model(inputs=l1, outputs=[l7, d4], name='capsule_network')
-    model.compile(optimizer='adam', loss=[margin_loss, reconstruction_loss], loss_weights=[1e0, 5e-3], metrics={'margin': accuracy})
+    model = create_capsnet_model(input_shape=x_train.shape[1:], name='mnist_capsnet')
+    model.compile(optimizer='adam', loss=[Losses.margin_loss, Losses.reconstruction_loss], loss_weights=[1e0, 5e-3],
+                  metrics={'margin': Metrics.accuracy})
+    model.summary()
 
     # checkpoint function to save best weights
     checkpoint = k.callbacks.ModelCheckpoint("best_weights.hdf5", save_best_only=True)
@@ -278,13 +262,11 @@ if __name__ == '__main__':
     if os.path.exists('best_weights.hdf5'):
         # load existing weights
         model.load_weights('best_weights.hdf5')
+        # evaluation
+        model.evaluate(x_test, [y_test, x_test])
     else:
         # training
         model.fit(x_train, [y_train, x_train], batch_size=50, epochs=5, validation_split=0.1, callbacks=[checkpoint])
-        # load best weights
-        model.load_weights('best_weights.hdf5')
-        # evaluation
-        model.evaluate(x_test, [y_test, x_test])
 
 
     def print_results():
