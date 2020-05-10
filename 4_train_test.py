@@ -103,7 +103,7 @@ if __name__ == '__main__':
                     model.load_weights(filepath)
                 # train
                 save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
-                model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=1000, validation_data=(x_dv, [y_dv, z_dv]), callbacks=[save_best])
+                model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=100000, validation_data=(x_dv, [y_dv, z_dv]), callbacks=[save_best])
             # testing phase
             if testing:
                 model.load_weights(filepath)

@@ -4,24 +4,22 @@ import numpy as np
 import pandas as pd
 import pywt
 
+from info import participants, epochs, sampling_freq
+
 if __name__ == '__main__':
-    print('Loading cleaned data')
+    print('Loading Data')
     data = pd.read_feather('data/data-clean.ftr')
-    labels = pd.DataFrame(
-        data={
-            'Label': [1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0],
-            'Score': [19.0, 12.0, 5.0, 0.0, 5.0, 11.0, 16.0, 16.0, 0.0, 7.0, 4.0, 0.0, 20.0, 2.0, 9.0, 4.0, 0.0]
-        },
-        index=['002', '004', '005', '007', '008', '011', '012', '013', '014', '015', '016', '017', '018', '019', '020', '021', '022']
-    )
+    print('OK')
+    print('Loading Labels')
+    labels = pd.read_csv('data/labels.csv', dtype={'ID': object}).set_index('ID')
+    label_col = 'ASD'
+    score_col = 'ADOS2'
     print('OK')
 
     # define constant values
-    participants = data['Participant'].unique()  # participants
-    epochs = data['Epoch'].unique()[1:]  # epochs (ignoring baseline)
     NUM_CH_ROWS = 5  # EEG channel rows
     NUM_CH_COLS = 6  # EEG channel columns
-    FREQ = 250  # sampling frequency
+    FREQ = sampling_freq  # sampling frequency
     DT = 1.0 / FREQ  # sampling period
 
     # define parameters to extract temporal slices
@@ -39,17 +37,17 @@ if __name__ == '__main__':
 
     # wavelet transform properties
     wavelet = 'cmor1.0-1.5'  # complex morlet wavelet (1.0 Hz - 1.5 Hz)
-    scales = 250 / BANDS  # scales corresponding to frequency bands
+    scales = FREQ / BANDS  # scales corresponding to frequency bands
 
     # generate values for x, y, and z
     print('Generating X, Y, and Z')
     data = data.set_index('Participant')
     for i, p in enumerate(participants):
         print(f'Participant: {p} - ', flush=True, end='')
-        label = labels.loc[p]['Label']
-        score = labels.loc[p]['Score']
+        label = labels.loc[p][label_col]
+        score = labels.loc[p][score_col]
         dp = data.loc[p].set_index('Epoch')
-        for j, e in enumerate(epochs):
+        for j, e in enumerate(epochs[1:]):
             print(f'{e} ', flush=True, end='')
             de = dp.loc[e].set_index('T').to_numpy()  # type: np.ndarray # shape: (timestep, channel)
             # wavelet transform on each channel

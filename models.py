@@ -1,8 +1,9 @@
-import tensorflow as tf
+#!/usr/bin/env python3
+
+from capsnet.layers import ConvCaps2D, DenseCaps, FlattenCaps
+from capsnet.nn import squash, norm
 from tensorflow import keras as k
 from tensorflow.keras import layers as kl, models as km
-
-from capsnet import CapsConv2D, CapsDense
 
 
 def lstm_nn(timesteps, ch_rows, ch_cols, bands):
@@ -87,14 +88,6 @@ def conv_nn_channel_major(ch_rows, ch_cols, timesteps, bands):
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_conv_cm')
 
 
-def max_capsule(data: tf.Tensor):
-    return tf.gather(data, tf.argmax(tf.norm(data, axis=2), axis=1), axis=1)
-
-
-def safe_l2_norm(_data, axis=-1, keepdims=False):
-    return tf.sqrt(tf.reduce_sum(tf.square(_data), axis=axis, keepdims=keepdims) + k.backend.epsilon())
-
-
 def capsule_nn(timesteps, ch_rows, ch_cols, bands):
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
@@ -102,15 +95,19 @@ def capsule_nn(timesteps, ch_rows, ch_cols, bands):
     # == intermediate layer(s) ==
     ml = kl.Reshape(target_shape=(timesteps, ch_rows * ch_cols, bands), name='eeg')(il)
     # initial convolution
-    ml = kl.Conv2D(filters=64, kernel_size=(3, 1), strides=(1, 1), activation='relu', name='conv')(ml)
+    ml = kl.Conv2D(filters=128, kernel_size=(3, 1), strides=(1, 1), activation='relu', name='conv')(ml)
     # convert to capsule domain
-    ml = CapsConv2D(caps_layers=4, caps_dims=16, kernel_size=(3, 1), strides=(1, 1), activation='relu', name='conv_caps')(ml)
+    ml = ConvCaps2D(filters=16, filter_dims=8, kernel_size=(3, 1), strides=(1, 1), name='conv_caps')(ml)
+    ml = kl.Lambda(squash)(ml)
     # dense capsule layer with dynamic routing
-    ml = CapsDense(caps=1, caps_dims=32, routing_iter=3, name='dense_caps')(ml)
+    ml = DenseCaps(caps=2, caps_dims=16, routing_iter=3, name='dense_caps')(ml)
+    # flatten capsule layer
+    fl_linr = FlattenCaps(caps=1)(ml)
+    fl_sqsh = kl.Lambda(squash)(fl_linr)
 
     # == output layer(s) ==
-    label = kl.Dense(1, activation='sigmoid', name='label')(ml)
-    score = kl.Dense(1, activation='relu', name='score')(ml)
+    score = kl.Lambda(norm, name='score')(fl_linr)
+    label = kl.Lambda(norm, name='label')(fl_sqsh)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[label, score], name='asd_caps_nn')
