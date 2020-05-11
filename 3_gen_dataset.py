@@ -27,8 +27,7 @@ if __name__ == '__main__':
     BANDS = np.arange(NUM_BANDS) + 1  # frequencies (1 Hz - 50 Hz)
     SLICE_WINDOW = 10  # secs per slice
     SLICE_STEP = 10  # secs to step to get next slice
-    K = 50  # downscaled frequency (in Hz)
-    SLICE_SHAPE = (SLICE_WINDOW * K, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
+    SLICE_SHAPE = (SLICE_WINDOW * FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 
     # define x, y, and z
     _x = np.empty(shape=(0, *SLICE_SHAPE))  # sample
@@ -37,6 +36,7 @@ if __name__ == '__main__':
 
     # wavelet transform properties
     wavelet = 'cmor1.0-1.5'  # complex morlet wavelet (1.0 Hz - 1.5 Hz)
+    # wavelet = 'sym9'  # symlet 9 wavelet
     scales = FREQ / BANDS  # scales corresponding to frequency bands
 
     # generate values for x, y, and z
@@ -63,16 +63,13 @@ if __name__ == '__main__':
                 timesteps = last_t * FREQ
                 l_trim = (len(ch) - timesteps) // 2
                 p = p[:, l_trim:l_trim + timesteps]
-                # reduce resolution of p from FREQ Hz to K Hz (using max)
-                p_downscaled = np.amax(p.reshape((NUM_BANDS, timesteps // (FREQ // K), (FREQ // K))), axis=-1)  # type: np.ndarray
                 # append power of channel to array
-                ch_p.append(p_downscaled.T)  # shape: (timestep, band)
+                ch_p.append(p.T)  # shape: (timestep, band)
             # power spectrum
             ps = np.stack(ch_p, axis=1)  # shape: (timestep, channel, band)
-
             # chunk power spectrum into N slices of SLICE_SHAPE
-            N = (len(ps) - (SLICE_WINDOW * K)) // (SLICE_STEP * K)
-            ws = [np.roll(ps, -k * (SLICE_STEP * K), axis=0)[:(SLICE_WINDOW * K)].reshape(SLICE_SHAPE) for k in range(N)]
+            N = (len(ps) - SLICE_WINDOW * FREQ) // (SLICE_STEP * FREQ)
+            ws = [np.roll(ps, -k * SLICE_STEP * FREQ, axis=0)[:(SLICE_WINDOW * FREQ)].reshape(SLICE_SHAPE) for k in range(N)]
             ds = np.stack(ws, axis=0)  # shape: (sample, timestep, row, col, band)
             _x = np.append(_x, ds, axis=0)
             _y = np.append(_y, np.full((N,), label), axis=0)
