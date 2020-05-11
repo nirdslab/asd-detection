@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from capsnet.layers import ConvCaps2D, DenseCaps, FlattenCaps
-from capsnet.nn import squash, norm
+from capsnet.layers import ConvCaps2D, DenseCaps
+from capsnet.nn import squash, norm, mask_cid
 from tensorflow import keras as k
 from tensorflow.keras import layers as kl, models as km
 
@@ -21,14 +21,14 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     ml = kl.LSTM(64, kernel_regularizer='l1_l2', dropout=0.2, name='lstm_2')(ml)
 
     # == output layer(s) ==
-    ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
+    ol_c = kl.Dense(2, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
     ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_lstm')
 
 
-def conv_nn_time_major(timesteps, ch_rows, ch_cols, bands):
+def conv_nn_tm(timesteps, ch_rows, ch_cols, bands):
     """
     Generate 1D-convolution NN model, with temporal dimension addressed first
     """
@@ -51,14 +51,14 @@ def conv_nn_time_major(timesteps, ch_rows, ch_cols, bands):
     ml = kl.Flatten(name='flatten')(ml)
 
     # == output layer(s) ==
-    ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
+    ol_c = kl.Dense(2, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
     ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_conv_tm')
 
 
-def conv_nn_channel_major(ch_rows, ch_cols, timesteps, bands):
+def conv_nn_cm(ch_rows, ch_cols, timesteps, bands):
     """
     Generate 1D-convolution NN model, with channel dimension addressed first
     """
@@ -81,7 +81,7 @@ def conv_nn_channel_major(ch_rows, ch_cols, timesteps, bands):
     ml = k.layers.Flatten(name='flatten')(ml)
 
     # == output layer(s) ==
-    ol_c = kl.Dense(1, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
+    ol_c = kl.Dense(2, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
     ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
@@ -101,13 +101,13 @@ def capsule_nn(timesteps, ch_rows, ch_cols, bands):
     ml = kl.Lambda(squash)(ml)
     # dense capsule layer with dynamic routing
     ml = DenseCaps(caps=2, caps_dims=16, routing_iter=3, name='dense_caps')(ml)
-    # flatten capsule layer
-    fl_linr = FlattenCaps(caps=1)(ml)
-    fl_sqsh = kl.Lambda(squash)(fl_linr)
+    ml = kl.Lambda(squash)(ml)
+    # select capsule with highest activity
+    cl = kl.Lambda(mask_cid)(ml)
 
     # == output layer(s) ==
-    score = kl.Lambda(norm, name='score')(fl_linr)
-    label = kl.Lambda(norm, name='label')(fl_sqsh)
+    label = kl.Lambda(norm, name='label')(ml)
+    score = kl.Dense(1, name='score')(cl)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[label, score], name='asd_caps_nn')

@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 import numpy as np
 import tensorflow as tf
+from capsnet.losses import margin_loss
 from tensorflow import keras as k
 
 import models
@@ -66,46 +67,47 @@ if __name__ == '__main__':
     print('creating time-major and channel-major data...', end=' ', flush=True)
     # time-major data
     DATA_TM = [X, Y, Z]
-    TM_SAMPLE_SHAPE = DATA_TM[0].shape[1:]
+    TM_SHAPE = DATA_TM[0].shape[1:]
     # channel-major data
     DATA_CM = [tf.transpose(X, perm=[0, 2, 3, 1, 4]).numpy(), Y, Z]  # type: List[np.ndarray]
-    CM_SAMPLE_SHAPE = DATA_CM[0].shape[1:]
+    CM_SHAPE = DATA_CM[0].shape[1:]
     print('OK')
 
     print('Creating Models...', end=' ', flush=True)
-    time_major_models = [
-        models.capsule_nn(*TM_SAMPLE_SHAPE),
-        models.lstm_nn(*TM_SAMPLE_SHAPE),
-        models.conv_nn_time_major(*TM_SAMPLE_SHAPE)
-    ]
-    channel_major_models = [
-        models.conv_nn_channel_major(*CM_SAMPLE_SHAPE)
+
+    default_loss = {'label': 'binary_crossentropy', 'score': 'mse'}
+    caps_loss = {'label': margin_loss, 'score': 'mse'}
+
+    # training models and specs (model, data, loss)
+    models = [
+        (models.capsule_nn(*TM_SHAPE), DATA_TM, caps_loss),
+        (models.lstm_nn(*TM_SHAPE), DATA_TM, default_loss),
+        (models.conv_nn_tm(*TM_SHAPE), DATA_TM, default_loss),
+        (models.conv_nn_cm(*CM_SHAPE), DATA_CM, default_loss),
     ]
     print('OK')
 
     print('Training and Evaluation')
-    optimizer = k.optimizers.Adam(learning_rate=0.0001)
+    optimizer = k.optimizers.Adam()
     # iterate each model type
-    for models, [x, y, z] in [(time_major_models, DATA_TM), (channel_major_models, DATA_CM)]:
+    for model, [x, y, z], loss in models:
+        y = k.utils.to_categorical(y, num_classes=2)
         # train-dev-test split at 60-20-20 ratio
         [x_tr, x_dv, x_ts], [y_tr, y_dv, y_ts], [z_tr, z_dv, z_ts] = train_dev_test_split(x, y, z, r_dev=0.2, r_test=0.2, rand_state=42)
-        for model in models:
-            filepath = f'weights/{model.name}.hdf5'
-            # build model
-            model.compile(optimizer=optimizer,
-                          loss={'label': 'binary_crossentropy', 'score': 'mse'},
-                          metrics={'label': 'accuracy', 'score': 'mse'})
-            model.summary()
-            # training phase
-            if training:
-                # load pre-trained weights when available
-                if os.path.exists(filepath):
-                    model.load_weights(filepath)
-                # train
-                save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
-                model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=100000, validation_data=(x_dv, [y_dv, z_dv]), callbacks=[save_best])
-            # testing phase
-            if testing:
+        filepath = f'weights/{model.name}.hdf5'
+        # build model
+        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.01], metrics={'label': 'accuracy', 'score': 'mse'})
+        model.summary()
+        # training phase
+        if training:
+            # load pre-trained weights when available
+            if os.path.exists(filepath):
                 model.load_weights(filepath)
-                model.evaluate(x_ts, [y_ts, z_ts])
+            # train
+            save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True)
+            model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=200, validation_data=(x_dv, [y_dv, z_dv]), callbacks=[save_best])
+        # testing phase
+        if testing:
+            model.load_weights(filepath)
+            model.evaluate(x_ts, [y_ts, z_ts])
     print('Done')
