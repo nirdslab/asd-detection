@@ -54,6 +54,6 @@ DT = 1.0 / SRC_FREQ  # sampling period
 # define parameters to extract temporal slices
 NUM_BANDS = 50  # number of frequency bands in final result
 SLICE_WINDOW = 30  # secs per slice
-SLICE_STEP = 10  # secs to step to get next slice
+SLICE_STEP = 15  # secs to step to get next slice
 SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 SLICE_SHAPE_BANDS = (*SLICE_SHAPE[:-1], 5)

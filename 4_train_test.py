@@ -60,6 +60,7 @@ if __name__ == '__main__':
     print('OK')
     print(f'TRAINING: X={X_TRAIN.shape}, Y={Y_TRAIN.shape}, Z={Z_TRAIN.shape}')
     print(f'TESTING: X={X_TEST.shape}, Y={Y_TEST.shape}, Z={Z_TEST.shape}')
+    input(np.unique(Y_TEST))
 
     # normalize x
     print('normalizing X...', end=' ', flush=True)
