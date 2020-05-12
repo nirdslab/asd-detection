@@ -30,10 +30,8 @@ if __name__ == '__main__':
     SLICE_STEP = 10  # secs to step to get next slice
     SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 
-    # define x, y, and z
-    _x = np.empty(shape=(0, *SLICE_SHAPE))  # sample
-    _y = np.empty(shape=(0,))  # label
-    _z = np.empty(shape=(0,))  # ADOS-2 score
+    # define dict to store output
+    dataset = {}
 
     # wavelet transform properties
     wavelet = 'cmor1.5-1.0'  # complex morlet wavelet (Bandwidth - 1.5 Hz, Center Frequency - 1.0 Hz)
@@ -48,6 +46,7 @@ if __name__ == '__main__':
         label = labels.loc[p][label_col]
         score = labels.loc[p][score_col]
         dp = data.loc[p].set_index('Epoch')
+        p_data = np.zeros((0, *SLICE_SHAPE))  # type: np.ndarray
         for j, e in enumerate(epochs[1:]):
             print(f'{e} ', flush=True, end='')
             de = dp.loc[e].set_index('T').to_numpy()  # type: np.ndarray # shape: (timestep, channel)
@@ -69,33 +68,43 @@ if __name__ == '__main__':
                 p = np.amax(p.reshape((p.shape[0], p.shape[1] // E, E)), axis=-1)
                 # append power of channel to array
                 ch_p.append(p.T)  # shape: (timestep, band)
-            # power spectrum
+
+            # stack each power spectrum
             ps = np.stack(ch_p, axis=1)  # shape: (timestep, channel, band)
             # chunk power spectrum into N slices of SLICE_SHAPE
             N = (len(ps) - SLICE_WINDOW * TARGET_FREQ) // (SLICE_STEP * TARGET_FREQ)
             ws = [np.roll(ps, -k * SLICE_STEP * TARGET_FREQ, axis=0)[:(SLICE_WINDOW * TARGET_FREQ)].reshape(SLICE_SHAPE) for k in range(N)]
+            # generate training data samples
             ds = np.stack(ws, axis=0)  # shape: (sample, timestep, row, col, band)
-            _x = np.append(_x, ds, axis=0)
-            _y = np.append(_y, np.full((N,), label), axis=0)
-            _z = np.append(_z, np.full((N,), score), axis=0)
-        print()
+            # append data samples to participant data
+            p_data = np.append(p_data, ds, axis=0)
+        # add participant's data to output
+        dataset[f'{p}_x'] = p_data
+        dataset[f'{p}_y'] = label
+        dataset[f'{p}_z'] = score
+        print(p_data.shape)
     print('OK')
 
-    # save x, y, and z
+    # save dataset
     print('Saving processed data')
-    np.savez_compressed('data/data-processed.npz', x=_x, y=_y, z=_z)
+    np.savez_compressed('data/data-processed.npz', **dataset)
     print('OK')
 
     # extract delta, theta, alpha, beta, and gamma frequency bands
     print('Reducing to frequency bands')
-    delta = _x[..., 0:4]  # ( <= 4 Hz)
-    theta = _x[..., 3:8]  # (4 - 8 Hz)
-    alpha = _x[..., 7:16]  # (8 - 16 Hz)
-    beta = _x[..., 15:32]  # (16 - 32 Hz)
-    gamma = _x[..., 31:]  # ( >= 32 Hz)
-    _xb = np.stack([np.max(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
+    for key in dataset.keys():
+        if key[-1] != 'x':
+            continue
+        _all_freq_data = dataset[key]
+        delta = _all_freq_data[..., 0:4]  # ( <= 4 Hz)
+        theta = _all_freq_data[..., 3:8]  # (4 - 8 Hz)
+        alpha = _all_freq_data[..., 7:16]  # (8 - 16 Hz)
+        beta = _all_freq_data[..., 15:32]  # (16 - 32 Hz)
+        gamma = _all_freq_data[..., 31:]  # ( >= 32 Hz)
+        _band_data = np.stack([np.max(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
+        dataset[key] = _band_data
     print('OK')
 
     print('Saving frequency band data')
-    np.savez_compressed('data/data-processed-bands.npz', x=_xb, y=_y, z=_z)
+    np.savez_compressed('data/data-processed-bands.npz', **dataset)
     print('OK')
