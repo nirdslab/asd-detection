@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pywt
+from matplotlib import pyplot as plt
 
 from info import participants, epochs, sampling_freq
 
@@ -55,8 +56,8 @@ if __name__ == '__main__':
             for ch in de.T:
                 # find wavelet transform coefficients of channel signal
                 c, _ = pywt.cwt(data=ch, scales=scales, wavelet=wavelet, sampling_period=DT)  # type: np.ndarray
-                # square it to obtain wavelet power spectrum
-                p = c ** 2  # type: np.ndarray
+                # calculate abs square of c to obtain wavelet power spectrum
+                p = np.abs(c) ** 2  # type: np.ndarray
                 # truncate p to avoid partial slices
                 last_t = len(ch) // FREQ
                 last_t -= (last_t - SLICE_WINDOW) % SLICE_STEP
