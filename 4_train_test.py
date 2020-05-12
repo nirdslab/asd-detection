@@ -10,7 +10,7 @@ from capsnet.losses import margin_loss
 from tensorflow import keras as k
 
 import models
-from info import participants, SLICE_SHAPE
+from info import participants, SLICE_SHAPE_BANDS
 
 tf.random.set_seed(42)
 
@@ -49,9 +49,8 @@ if __name__ == '__main__':
     # load dataset
     print('loading dataset...', end=' ', flush=True)
     dataset = np.load('data/data-processed-bands.npz')
-    print(list(dataset.keys()))
     # randomly split participants
-    X = np.zeros((0, *SLICE_SHAPE))  # type: np.ndarray
+    X = np.zeros((0, *SLICE_SHAPE_BANDS))  # type: np.ndarray
     Y = np.zeros(0, )  # type: np.ndarray
     Z = np.zeros(0, )  # type: np.ndarray
     for p in participants:
@@ -70,9 +69,9 @@ if __name__ == '__main__':
     print('OK')
 
     # spatial localization
-    print('performing spatial localization...', end=' ', flush=True)
-    X = tf.nn.max_pool(X, ksize=[1, 3, 2], strides=[1, 1, 2], padding='VALID').numpy()
-    print('OK')
+    # print('performing spatial localization...', end=' ', flush=True)
+    # X = tf.nn.max_pool(tf.convert_to_tensor(X, tf.float32), ksize=[1, 3, 2], strides=[1, 1, 2], padding='VALID').numpy()
+    # print('OK')
 
     # generate time-major and channel-major data
     # NOTE: this was done to avoid repeated transposition, which is computationally expensive
@@ -92,10 +91,10 @@ if __name__ == '__main__':
 
     # training models and specs (model, data, loss)
     models = [
-        (models.capsule_nn(*TM_SHAPE), DATA_TM, caps_loss),
-        (models.lstm_nn(*TM_SHAPE), DATA_TM, default_loss),
         (models.conv_nn_tm(*TM_SHAPE), DATA_TM, default_loss),
         (models.conv_nn_cm(*CM_SHAPE), DATA_CM, default_loss),
+        (models.capsule_nn(*TM_SHAPE), DATA_TM, caps_loss),
+        (models.lstm_nn(*TM_SHAPE), DATA_TM, default_loss),
     ]
     print('OK')
 
