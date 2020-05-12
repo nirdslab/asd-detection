@@ -35,7 +35,7 @@ if __name__ == '__main__':
     _z = np.empty(shape=(0,))  # ADOS-2 score
 
     # wavelet transform properties
-    wavelet = 'cmor1.0-1.5'  # complex morlet wavelet (1.0 Hz - 1.5 Hz)
+    wavelet = 'cmor1.5-1.0'  # complex morlet wavelet (Bandwidth - 1.5 Hz, Center Frequency - 1.0 Hz)
     # wavelet = 'sym9'  # symlet 9 wavelet
     scales = FREQ / BANDS  # scales corresponding to frequency bands
 
