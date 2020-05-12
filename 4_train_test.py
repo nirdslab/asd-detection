@@ -37,7 +37,7 @@ if __name__ == '__main__':
     dataset = np.load('data/data-processed-bands.npz')
 
     # train-test-split on participant ID
-    fraction = 0.8
+    fraction = 0.7
     num_train = int(len(participants) * fraction)
     p_train = set(np.random.choice(participants, num_train, replace=False))
 
@@ -60,7 +60,6 @@ if __name__ == '__main__':
     print('OK')
     print(f'TRAINING: X={X_TRAIN.shape}, Y={Y_TRAIN.shape}, Z={Z_TRAIN.shape}')
     print(f'TESTING: X={X_TEST.shape}, Y={Y_TEST.shape}, Z={Z_TEST.shape}')
-    input(np.unique(Y_TEST))
 
     # normalize x
     print('normalizing X...', end=' ', flush=True)
@@ -91,14 +90,14 @@ if __name__ == '__main__':
     # training models and specs (model, data, loss)
     models = [
         (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
-        (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
-        (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
-        (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
+        # (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
+        # (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
+        # (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
     ]
     print('OK')
 
     print('Training and Evaluation')
-    optimizer = k.optimizers.Adam()
+    optimizer = k.optimizers.Adam(0.0001)
     # iterate each model type
     model = ... # type: k.Model
     for model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss in models:
@@ -106,8 +105,8 @@ if __name__ == '__main__':
         y_te = k.utils.to_categorical(y_te, num_classes=2)
         filepath = f'weights/{model.name}.hdf5'
         # build model
-        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.1], metrics={'label': 'accuracy', 'score': 'mse'})
-        model.summary()
+        model.compile(optimizer=optimizer, loss=loss, metrics={'label': 'accuracy', 'score': 'mse'})
+        model.summary(line_length=150)
         # training phase
         if training:
             # load pre-trained weights when available
@@ -115,7 +114,7 @@ if __name__ == '__main__':
                 model.load_weights(filepath)
             # train
             save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
-            model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=200, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
+            model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
         if testing:
             model.load_weights(filepath)
             model.evaluate(x_te, [y_te, z_te], batch_size=64)

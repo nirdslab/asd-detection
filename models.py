@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import tensorflow as tf
 from capsnet.layers import ConvCaps2D, DenseCaps
 from capsnet.nn import squash, norm, mask_cid
 from tensorflow import keras as k
@@ -28,31 +29,45 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_lstm')
 
 
+def conv_block(block_id, conv_layers, filters, kernel_size):
+    conv_spec = {'activation': 'relu', 'padding': 'same', 'kernel_regularizer': 'l1_l2'}
+
+    def call(_ml):
+        _layers = []
+        for i in range(conv_layers):
+            # convolution
+            _ml = kl.Conv2D(filters, kernel_size, **conv_spec, name=f'conv_{block_id}_{i + 1}')(_ml)
+            _ml = kl.BatchNormalization(name=f'bn_{block_id}_{i + 1}')(_ml)
+            _layers.append(_ml)
+            if i > 0: _ml = kl.Concatenate(name=f'c_{block_id}_{i + 1}')([*_layers])
+        return _ml
+
+    return call
+
+
 def conv_nn_tm(timesteps, ch_rows, ch_cols, bands):
     """
     Generate 1D-convolution NN model, with temporal dimension addressed first
     """
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
+    ml = kl.Reshape((il.shape[1], tf.reduce_prod(il.shape[2:-1]), il.shape[-1]))(il)
 
     # == intermediate layer(s) ==
-    ml = kl.TimeDistributed(kl.Flatten(), name='eeg')(il)
-    # convolution 1
-    ml = kl.Conv1D(filters=64, kernel_size=10, activation='relu', kernel_regularizer='l1_l2', padding='same', name='conv_1')(ml)
-    ml = kl.MaxPooling1D(name='pool_1')(ml)
-    ml = kl.Dropout(0.2, name='dropout_1')(ml)
-    ml = kl.BatchNormalization(name='b_norm_1')(ml)
-    # convolution 2
-    ml = kl.Conv1D(filters=128, kernel_size=10, activation='relu', kernel_regularizer='l1_l2', padding='same', name='conv_2')(ml)
-    ml = kl.MaxPooling1D(name='pool_2')(ml)
-    ml = kl.Dropout(0.2, name='dropout_2')(ml)
-    ml = kl.BatchNormalization(name='b_norm_2')(ml)
+    # block 1
+    ml = conv_block(block_id=1, conv_layers=4, filters=4, kernel_size=(5, 1))(ml)
+    ml = kl.AveragePooling2D((2, 1), name=f'pool_1')(ml)
+    ml = kl.Dropout(0.5, name='dropout_1')(ml)
+    # # block 2
+    ml = conv_block(block_id=2, conv_layers=4, filters=8, kernel_size=(5, 1))(ml)
+    ml = kl.AveragePooling2D((2, 1), name=f'pool_2')(ml)
+    ml = kl.Dropout(0.5, name='dropout_2')(ml)
     # flatten
-    ml = kl.Flatten(name='flatten')(ml)
+    ml = kl.Flatten(name='flatten_ol')(ml)
 
     # == output layer(s) ==
-    ol_c = kl.Dense(2, activation='sigmoid', kernel_regularizer='l1_l2', name='label')(ml)
-    ol_r = kl.Dense(1, activation='relu', kernel_regularizer='l1_l2', name='score')(ml)
+    ol_c = kl.Dense(2, activation='softmax', kernel_regularizer='l1_l2', name='label')(ml)
+    ol_r = kl.Dense(1, kernel_regularizer='l1_l2', name='score')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_conv_tm')
