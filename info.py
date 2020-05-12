@@ -43,3 +43,16 @@ target_cols = [
 # TP7 CP5 CP1 [--]  CP2 CP6 TP8
 # P9  P7  P3  [Pz]  P4  P8  P10
 # =============================
+
+# define constant values
+NUM_CH_ROWS = 5  # EEG channel rows
+NUM_CH_COLS = 6  # EEG channel columns
+SRC_FREQ = sampling_freq  # sampling frequency
+TARGET_FREQ = 5  # 5 Hz
+DT = 1.0 / SRC_FREQ  # sampling period
+
+# define parameters to extract temporal slices
+NUM_BANDS = 50  # number of frequency bands in final result
+SLICE_WINDOW = 10  # secs per slice
+SLICE_STEP = 10  # secs to step to get next slice
+SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)

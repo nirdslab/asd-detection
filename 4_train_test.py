@@ -10,6 +10,7 @@ from capsnet.losses import margin_loss
 from tensorflow import keras as k
 
 import models
+from info import participants, SLICE_SHAPE
 
 tf.random.set_seed(42)
 
@@ -48,7 +49,18 @@ if __name__ == '__main__':
     # load dataset
     print('loading dataset...', end=' ', flush=True)
     dataset = np.load('data/data-processed-bands.npz')
-    X, Y, Z = [dataset['x'], dataset['y'], dataset['z']]  # type: np.ndarray
+    print(list(dataset.keys()))
+    # randomly split participants
+    X = np.zeros((0, *SLICE_SHAPE))  # type: np.ndarray
+    Y = np.zeros(0, )  # type: np.ndarray
+    Z = np.zeros(0, )  # type: np.ndarray
+    for p in participants:
+        _x = dataset[f'{p}_x']
+        _y = dataset[f'{p}_y']
+        _z = dataset[f'{p}_z']
+        X = np.append(X, _x, axis=0)
+        Y = np.append(Y, np.full(len(_x), _y), axis=0)
+        Z = np.append(Z, np.full(len(_x), _z), axis=0)
     print('OK')
     print(f'X={X.shape}, Y={Y.shape}, Z={Z.shape}')
 

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pywt
 
-from info import participants, epochs, sampling_freq
+from info import participants, epochs, NUM_BANDS, SLICE_SHAPE, SLICE_WINDOW, SLICE_STEP, SRC_FREQ, TARGET_FREQ, DT
 
 if __name__ == '__main__':
     print('Loading Data')
@@ -15,20 +15,7 @@ if __name__ == '__main__':
     label_col = 'ASD'
     score_col = 'ADOS2'
     print('OK')
-
-    # define constant values
-    NUM_CH_ROWS = 5  # EEG channel rows
-    NUM_CH_COLS = 6  # EEG channel columns
-    SRC_FREQ = sampling_freq  # sampling frequency
-    TARGET_FREQ = 5  # 5 Hz
-    DT = 1.0 / SRC_FREQ  # sampling period
-
-    # define parameters to extract temporal slices
-    NUM_BANDS = 50  # number of frequency bands in final result
     BANDS = np.arange(NUM_BANDS) + 1  # frequencies (1 Hz - 50 Hz)
-    SLICE_WINDOW = 10  # secs per slice
-    SLICE_STEP = 10  # secs to step to get next slice
-    SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 
     # define dict to store output
     dataset = {}
@@ -56,18 +43,18 @@ if __name__ == '__main__':
                 # find wavelet transform coefficients of channel signal
                 c, _ = pywt.cwt(data=ch, scales=scales, wavelet=wavelet, sampling_period=DT)  # type: np.ndarray
                 # calculate abs square of c to obtain wavelet power spectrum
-                p = np.abs(c) ** 2  # type: np.ndarray
+                ps = np.abs(c) ** 2  # type: np.ndarray
                 # truncate p to avoid partial slices
                 last_t = len(ch) // SRC_FREQ
                 last_t -= (last_t - SLICE_WINDOW) % SLICE_STEP
                 timesteps = last_t * SRC_FREQ
                 l_trim = (len(ch) - timesteps) // 2
-                p = p[:, l_trim:l_trim + timesteps]
+                ps = ps[:, l_trim:l_trim + timesteps]
                 # down-scale the power spectrum to target frequency (helps to reduce kernel size later)
                 E = SRC_FREQ // TARGET_FREQ
-                p = np.amax(p.reshape((p.shape[0], p.shape[1] // E, E)), axis=-1)
+                ps = np.amax(ps.reshape((ps.shape[0], ps.shape[1] // E, E)), axis=-1)
                 # append power of channel to array
-                ch_p.append(p.T)  # shape: (timestep, band)
+                ch_p.append(ps.T)  # shape: (timestep, band)
 
             # stack each power spectrum
             ps = np.stack(ch_p, axis=1)  # shape: (timestep, channel, band)
