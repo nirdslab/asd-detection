@@ -55,11 +55,11 @@ def conv_nn_tm(timesteps, ch_rows, ch_cols, bands):
 
     # == intermediate layer(s) ==
     # block 1
-    ml = conv_block(block_id=1, conv_layers=4, filters=4, kernel_size=(5, 1))(ml)
+    ml = conv_block(block_id=1, conv_layers=4, filters=8, kernel_size=(5, 1))(ml)
     ml = kl.AveragePooling2D((2, 1), name=f'pool_1')(ml)
     ml = kl.Dropout(0.5, name='dropout_1')(ml)
     # # block 2
-    ml = conv_block(block_id=2, conv_layers=4, filters=8, kernel_size=(5, 1))(ml)
+    ml = conv_block(block_id=2, conv_layers=4, filters=16, kernel_size=(5, 1))(ml)
     ml = kl.AveragePooling2D((2, 1), name=f'pool_2')(ml)
     ml = kl.Dropout(0.5, name='dropout_2')(ml)
     # flatten

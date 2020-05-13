@@ -97,7 +97,7 @@ if __name__ == '__main__':
     print('OK')
 
     print('Training and Evaluation')
-    optimizer = k.optimizers.Adam(0.0001)
+    optimizer = k.optimizers.Adam(0.0005)
     # iterate each model type
     model = ... # type: k.Model
     for model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss in models:
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                 model.load_weights(filepath)
             # train
             save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
-            model.fit(x_tr, [y_tr, z_tr], batch_size=64, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
+            model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
         if testing:
             model.load_weights(filepath)
             model.evaluate(x_te, [y_te, z_te], batch_size=64)
