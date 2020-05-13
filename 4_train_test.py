@@ -84,8 +84,8 @@ if __name__ == '__main__':
 
     print('Creating Models...', end=' ', flush=True)
 
-    default_loss = {'label': 'binary_crossentropy', 'score': 'mse'}
-    caps_loss = {'label': margin_loss, 'score': 'mse'}
+    default_loss = {'l': 'categorical_crossentropy', 's': 'mae'}
+    caps_loss = {'l': margin_loss, 's': 'mae'}
 
     # training models and specs (model, data, loss)
     models = [
@@ -99,13 +99,13 @@ if __name__ == '__main__':
     print('Training and Evaluation')
     optimizer = k.optimizers.Adam(0.0005)
     # iterate each model type
-    model = ... # type: k.Model
+    model = ...  # type: k.Model
     for model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss in models:
         y_tr = k.utils.to_categorical(y_tr, num_classes=2)
         y_te = k.utils.to_categorical(y_te, num_classes=2)
         filepath = f'weights/{model.name}.hdf5'
         # build model
-        model.compile(optimizer=optimizer, loss=loss, metrics={'label': 'accuracy', 'score': 'mse'})
+        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics={'l': 'acc', 's': 'mae'})
         model.summary(line_length=150)
         # training phase
         if training:
