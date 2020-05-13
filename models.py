@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import tensorflow as tf
 from capsnet.layers import ConvCaps2D, DenseCaps
 from capsnet.nn import squash, norm, mask_cid
 from tensorflow import keras as k
@@ -16,22 +15,17 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     """
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
-    ml = kl.Reshape((il.shape[1], tf.reduce_prod(il.shape[2:-1]) * il.shape[-1]))(il)
 
     # == intermediate layer(s) ==
-    # spatial mixing
-    ml = kl.TimeDistributed(kl.Dense(units=64, activation='relu'))(ml)
-    ml = kl.Dropout(DROPOUT)(ml)
-    # densely connected lstm
-    seq = []
-    N = 4
-    B = 64
-    for i in range(N):
-        ml = kl.LSTM(B, return_sequences=True, kernel_regularizer=REG, name=f'db_lstm_{i + 1}')(ml)
-        seq.append(ml)
-        if i > 0: ml = kl.Concatenate()([*seq])
-    ml = kl.LSTM(B, kernel_regularizer=REG, name=f'f_lstm')(ml)
-    ml = kl.Dense(B, name=f'dense', activation='relu')(ml)
+    # convolution-lstm layer 1
+    ml = kl.ConvLSTM2D(filters=32, return_sequences=True, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(il)
+    # convolution-lstm layer 2
+    ml = kl.ConvLSTM2D(filters=64, return_sequences=True, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(ml)
+    # convolution-lstm layer 3
+    ml = kl.ConvLSTM2D(filters=128, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(ml)
+    # flatten layer
+    ml = kl.Flatten()(ml)
+
     # == output layer(s) ==
     ol_c = kl.Dense(2, activation='softmax', kernel_regularizer=REG, name='l')(ml)
     ol_r = kl.Dense(1, kernel_regularizer=REG, name='s')(ml)
@@ -79,7 +73,7 @@ def conv_nn_tm(timesteps, ch_rows, ch_cols, bands):
     """
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
-    ml = kl.Reshape((il.shape[1], tf.reduce_prod(il.shape[2:-1]), il.shape[-1]))(il)
+    ml = kl.Reshape((timesteps, ch_rows * ch_cols, bands))(il)
 
     # == intermediate layer(s) ==
     # initial convolution
