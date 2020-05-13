@@ -89,10 +89,10 @@ if __name__ == '__main__':
 
     # training models and specs (model, data, loss)
     models = [
-        (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
+        # (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
         # (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
         # (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
-        # (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
+        (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
     ]
     print('OK')
 

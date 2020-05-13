@@ -16,17 +16,25 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     """
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
+    ml = kl.Reshape((il.shape[1], tf.reduce_prod(il.shape[2:-1]) * il.shape[-1]))(il)
 
     # == intermediate layer(s) ==
-    ml = kl.TimeDistributed(kl.Flatten(), name='eeg')(il)
-    # lstm block 1
-    ml = kl.LSTM(32, return_sequences=True, kernel_regularizer=REG, dropout=0.2, name='lstm_1')(ml)
-    # lstm block 2
-    ml = kl.LSTM(64, kernel_regularizer=REG, dropout=0.2, name='lstm_2')(ml)
-
+    # spatial mixing
+    ml = kl.TimeDistributed(kl.Dense(units=64, activation='relu'))(ml)
+    ml = kl.Dropout(DROPOUT)(ml)
+    # densely connected lstm
+    seq = []
+    N = 4
+    B = 64
+    for i in range(N):
+        ml = kl.LSTM(B, return_sequences=True, kernel_regularizer=REG, name=f'db_lstm_{i + 1}')(ml)
+        seq.append(ml)
+        if i > 0: ml = kl.Concatenate()([*seq])
+    ml = kl.LSTM(B, kernel_regularizer=REG, name=f'f_lstm')(ml)
+    ml = kl.Dense(B, name=f'dense', activation='relu')(ml)
     # == output layer(s) ==
-    ol_c = kl.Dense(2, activation='sigmoid', kernel_regularizer=REG, name='l')(ml)
-    ol_r = kl.Dense(1, activation='relu', kernel_regularizer=REG, name='s')(ml)
+    ol_c = kl.Dense(2, activation='softmax', kernel_regularizer=REG, name='l')(ml)
+    ol_r = kl.Dense(1, kernel_regularizer=REG, name='s')(ml)
 
     # == create and return model ==
     return km.Model(inputs=il, outputs=[ol_c, ol_r], name='asd_lstm')
