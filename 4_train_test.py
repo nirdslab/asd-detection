@@ -86,6 +86,8 @@ if __name__ == '__main__':
 
     default_loss = {'l': 'categorical_crossentropy', 's': 'mae'}
     caps_loss = {'l': margin_loss, 's': 'mae'}
+    # metrics = {'l': 'acc', 's': 'mae'} # commented out because s_mae is same as s_loss
+    metrics = {'l': 'acc'}
 
     # training models and specs (model, data, loss)
     models = [
@@ -105,7 +107,7 @@ if __name__ == '__main__':
         y_te = k.utils.to_categorical(y_te, num_classes=2)
         filepath = f'weights/{model.name}.hdf5'
         # build model
-        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics={'l': 'acc', 's': 'mae'})
+        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics=metrics)
         model.summary(line_length=150)
         # training phase
         if training:

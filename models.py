@@ -15,16 +15,20 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     """
     # == input layer(s) ==
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
-
+    ml = kl.Reshape((timesteps, ch_rows * ch_cols * bands))(il)
     # == intermediate layer(s) ==
-    # convolution-lstm layer 1
-    ml = kl.ConvLSTM2D(filters=32, return_sequences=True, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(il)
-    # convolution-lstm layer 2
-    ml = kl.ConvLSTM2D(filters=64, return_sequences=True, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(ml)
+    B = 32
+    N = 8
+    seq = []
+    for i in range(N):
+        # convolution lstm
+        ml = kl.LSTM(B, return_sequences=True, dropout=DROPOUT, name=f'h_lstm{i + 1}')(ml)
+        seq.append(ml)
+        if i > 0: ml = kl.Concatenate(name=f'h_concat_{i}')([*seq])
     # convolution-lstm layer 3
-    ml = kl.ConvLSTM2D(filters=128, dropout=DROPOUT, kernel_size=(1, 1), padding='same')(ml)
-    # flatten layer
-    ml = kl.Flatten()(ml)
+    ml = kl.LSTM(B, dropout=DROPOUT, name=f'f_lstm')(ml)
+    # dense layer
+    ml = kl.Dense(B, activation='relu')(ml)
 
     # == output layer(s) ==
     ol_c = kl.Dense(2, activation='softmax', kernel_regularizer=REG, name='l')(ml)
