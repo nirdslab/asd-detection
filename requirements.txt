@@ -1,8 +1,8 @@
-numpy==1.18.3
+numpy==1.18.4
 pandas==1.0.3
 pyarrow==0.17.0
-tensorflow==2.1.0
-mne==0.20.1
+tensorflow==2.2.0
+mne==0.20.4
 pywavelets==1.1.1
 matplotlib==3.2.1
-scikit-learn==0.22.2.post1
+scikit-learn==0.23.0
