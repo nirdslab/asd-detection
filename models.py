@@ -30,14 +30,16 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
 
 
 def conv_block(block_id, conv_layers, filters, kernel_size):
-    conv_spec = {'activation': 'relu', 'padding': 'same', 'kernel_regularizer': 'l1_l2'}
+    conv_spec = {'padding': 'same', 'kernel_regularizer': 'l1_l2'}
 
     def call(_ml):
         _layers = []
         for i in range(conv_layers):
             # convolution
             _ml = kl.Conv2D(filters, kernel_size, **conv_spec, name=f'conv_{block_id}_{i + 1}')(_ml)
+            _ml = kl.Dropout(0.2, name=f'dropout_{block_id}_{i + 1}')(_ml)
             _ml = kl.BatchNormalization(name=f'bn_{block_id}_{i + 1}')(_ml)
+            _ml = kl.ReLU()(_ml)
             _layers.append(_ml)
             if i > 0: _ml = kl.Concatenate(name=f'c_{block_id}_{i + 1}')([*_layers])
         return _ml
@@ -57,11 +59,11 @@ def conv_nn_tm(timesteps, ch_rows, ch_cols, bands):
     # block 1
     ml = conv_block(block_id=1, conv_layers=4, filters=8, kernel_size=(5, 1))(ml)
     ml = kl.AveragePooling2D((2, 1), name=f'pool_1')(ml)
-    ml = kl.Dropout(0.5, name='dropout_1')(ml)
+    ml = kl.Dropout(0.2, name='dropout_1')(ml)
     # # block 2
     ml = conv_block(block_id=2, conv_layers=4, filters=16, kernel_size=(5, 1))(ml)
     ml = kl.AveragePooling2D((2, 1), name=f'pool_2')(ml)
-    ml = kl.Dropout(0.5, name='dropout_2')(ml)
+    ml = kl.Dropout(0.2, name='dropout_2')(ml)
     # flatten
     ml = kl.Flatten(name='flatten_ol')(ml)
 
