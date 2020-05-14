@@ -92,5 +92,5 @@ if __name__ == '__main__':
         model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
     if testing:
         model.load_weights(save_path)
-        model.evaluate(x_te, [y_te, z_te], batch_size=64)
+        model.evaluate(x_te, [y_te, z_te], batch_size=64, verbose=2)
     print('Done')
