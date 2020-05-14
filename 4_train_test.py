@@ -2,7 +2,7 @@
 
 import os
 import sys
-from typing import List
+from typing import List, Dict, Tuple, Any
 
 import numpy as np
 import tensorflow as tf
@@ -19,18 +19,18 @@ if __name__ == '__main__':
     # parse command line arguments
     training = False
     testing = False
-    if len(sys.argv) != 2:
-        print('Arguments: [ train | test ]')
+    if len(sys.argv) != 3:
+        print('Arguments: [ train | test ] [ model_name ]')
         exit(1)
     else:
         mode = sys.argv[1].strip().lower()
-        if mode not in ['train', 'test']:
-            print('Arguments: [OPTIONAL] [ train | test ]')
-            exit(1)
+        assert mode in ['train', 'test'], 'Arguments: [OPTIONAL] [ train | test ]'
         if mode == 'train':
             training = True
         elif mode == 'test':
             testing = True
+        model_name = sys.argv[2].strip().lower()
+        assert model_name in ['conv_tm', 'conv_cm', 'caps', 'lstm']
 
     # load dataset
     print('loading dataset...', end=' ', flush=True)
@@ -90,34 +90,33 @@ if __name__ == '__main__':
     metrics = {'l': 'acc'}
 
     # training models and specs (model, data, loss)
-    models = [
-        # (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
-        # (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
-        # (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
-        (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
-    ]
+    models_dict = {
+        'conv_tm': (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
+        'conv_cm': (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
+        'caps': (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
+        'lstm': (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
+    }  # type: Dict[str, Tuple[k.Model, List[np.ndarray], List[np.ndarray], Dict[str, Any]]]
     print('OK')
 
     print('Training and Evaluation')
     optimizer = k.optimizers.Adam(0.0005)
     # iterate each model type
-    model = ...  # type: k.Model
-    for model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss in models:
-        y_tr = k.utils.to_categorical(y_tr, num_classes=2)
-        y_te = k.utils.to_categorical(y_te, num_classes=2)
-        filepath = f'weights/{model.name}.hdf5'
-        # build model
-        model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics=metrics)
-        model.summary(line_length=150)
-        # training phase
-        if training:
-            # load pre-trained weights when available
-            if os.path.exists(filepath):
-                model.load_weights(filepath)
-            # train
-            save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
-            model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
-        if testing:
+    model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss = models_dict[model_name]
+    y_tr = k.utils.to_categorical(y_tr, num_classes=2)
+    y_te = k.utils.to_categorical(y_te, num_classes=2)
+    filepath = f'weights/{model.name}.hdf5'
+    # build model
+    model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics=metrics)
+    model.summary(line_length=150)
+    # training phase
+    if training:
+        # load pre-trained weights when available
+        if os.path.exists(filepath):
             model.load_weights(filepath)
-            model.evaluate(x_te, [y_te, z_te], batch_size=64)
+        # train
+        save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
+        model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
+    if testing:
+        model.load_weights(filepath)
+        model.evaluate(x_te, [y_te, z_te], batch_size=64)
     print('Done')
