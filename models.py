@@ -90,7 +90,7 @@ def lstm_nn(timesteps, ch_rows, ch_cols, bands):
     ml = kl.Reshape((timesteps, ch_rows * ch_cols * bands))(il)
     # == intermediate layer(s) ==
     B = 32
-    N = 8
+    N = 4
     seq = []
     for i in range(N):
         # convolution lstm
@@ -126,12 +126,16 @@ def capsule_nn(timesteps, ch_rows, ch_cols, bands):
     # == intermediate layer(s) ==
     ml = kl.Reshape(target_shape=(timesteps, ch_rows * ch_cols, bands), name='eeg')(il)
     # initial convolution
-    ml = kl.Conv2D(filters=64, kernel_size=(5, 1), strides=(1, 1), activation='relu', name='conv')(ml)
+    ml = kl.Conv2D(filters=32, kernel_size=(5, 1), strides=(1, 1), activation='relu', name='conv', padding='same')(ml)
+    ml = kl.AveragePooling2D(pool_size=(2, 1))(ml)
+    # secondary convolution
+    ml = kl.Conv2D(filters=64, kernel_size=(5, 1), strides=(1, 1), activation='relu', name='conv', padding='same')(ml)
+    ml = kl.AveragePooling2D(pool_size=(2, 1))(ml)
     # convert to capsule domain
     ml = ConvCaps2D(filters=16, filter_dims=8, kernel_size=(5, 1), strides=(2, 1), name='conv_caps')(ml)
     ml = kl.Lambda(squash)(ml)
     # dense capsule layer with dynamic routing
-    ml = DenseCaps(caps=2, caps_dims=8, routing_iter=3, name='dense_caps')(ml)
+    ml = DenseCaps(caps=2, caps_dims=16, routing_iter=3, name='dense_caps')(ml)
     ml = kl.Lambda(squash)(ml)
     # select capsule with highest activity
     cl = kl.Lambda(mask_cid)(ml)
