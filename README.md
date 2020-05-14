@@ -1,4 +1,4 @@
-# CapsNet EEG
+# ASD Detection
 
 Collection of Neural Architectures for Detection of ASD, using EEG data.
 
