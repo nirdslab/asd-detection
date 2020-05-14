@@ -1,17 +1,17 @@
 # CapsNet EEG
 
-Neural Architectures for Detection of ASD using EEG data
+Collection of Neural Architectures for Detection of ASD, using EEG data.
 
-## Training Data
+## Data
 ```
 TRAINING: X=(311, 150, 5, 6, 5), Y=(311,), Z=(311,)
 TESTING: X=(180, 150, 5, 6, 5), Y=(180,), Z=(180,)
 ```
 
 ## Models Used
-* CONV - Convolution Model
-* LSTM - LSTM Model
-* CAPS - CapsNet Model
+* **CONV** - Convolution Model
+* **LSTM** - LSTM Model
+* **CAPS** - CapsNet Model
 
 ## Results
 
