@@ -6,6 +6,11 @@ import pywt
 
 from info import participants, epochs, NUM_BANDS, SLICE_SHAPE, SLICE_WINDOW, SLICE_STEP, SRC_FREQ, TARGET_FREQ, DT
 
+
+def scale(_x):
+    return (_x - _x.min()) / (_x.max() - _x.min())
+
+
 if __name__ == '__main__':
     print('Loading Data')
     data = pd.read_feather('data/data-clean.ftr')
@@ -81,8 +86,11 @@ if __name__ == '__main__':
 
     # extract delta, theta, alpha, beta, and gamma frequency bands
     print('Reducing to frequency bands')
+    dataset = np.load('data/data-processed.npz')
+    band_dataset = {}
     for key in dataset.keys():
         if key[-1] != 'x':
+            band_dataset[key] = dataset[key]
             continue
         _all_freq_data = dataset[key]
         delta = _all_freq_data[..., 0:4]  # ( <= 4 Hz)
@@ -90,10 +98,10 @@ if __name__ == '__main__':
         alpha = _all_freq_data[..., 7:16]  # (8 - 16 Hz)
         beta = _all_freq_data[..., 15:32]  # (16 - 32 Hz)
         gamma = _all_freq_data[..., 31:]  # ( >= 32 Hz)
-        _band_data = np.stack([np.max(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
-        dataset[key] = _band_data
+        _band_data = np.stack([scale(np.max(x, axis=-1)) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
+        band_dataset[key] = _band_data
     print('OK')
 
     print('Saving frequency band data')
-    np.savez_compressed('data/data-processed-bands.npz', **dataset)
+    np.savez_compressed('data/data-processed-bands.npz', **band_dataset)
     print('OK')
