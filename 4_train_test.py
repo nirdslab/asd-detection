@@ -2,7 +2,7 @@
 
 import os
 import sys
-from typing import List, Dict, Tuple, Any
+from typing import List
 
 import numpy as np
 import tensorflow as tf
@@ -14,32 +14,29 @@ from info import participants, SLICE_SHAPE_BANDS
 
 tf.random.set_seed(42)
 np.random.seed(42)
+INFO = 'Expected Arguments: [OPTIONAL] [ train | test ] [ MODEL_NAME ]'
+FRACTION = 0.7
 
 if __name__ == '__main__':
     # parse command line arguments
-    training = False
-    testing = False
-    if len(sys.argv) != 3:
-        print('Arguments: [ train | test ] [ model_name ]')
-        exit(1)
-    else:
-        mode = sys.argv[1].strip().lower()
-        assert mode in ['train', 'test'], 'Arguments: [OPTIONAL] [ train | test ]'
-        if mode == 'train':
-            training = True
-        elif mode == 'test':
-            testing = True
-        model_name = sys.argv[2].strip().lower()
-        assert model_name in ['conv_tm', 'conv_cm', 'caps', 'lstm']
+    assert len(sys.argv) == 3, INFO
+    mode = sys.argv[1].strip().lower()
+    model_name = sys.argv[2].strip().lower()
+    assert mode in ['train', 'test'], INFO
+    assert model_name in ['conv', 'lstm', 'caps'], INFO
+    training = mode == 'train'
+    testing = mode == 'test'
 
     # load dataset
     print('loading dataset...', end=' ', flush=True)
     dataset = np.load('data/data-processed-bands.npz')
+    print('OK')
 
     # train-test-split on participant ID
-    fraction = 0.7
-    num_train = int(len(participants) * fraction)
+    print('performing train-test split...', end=' ', flush=True)
+    num_train = int(len(participants) * FRACTION)
     p_train = set(np.random.choice(participants, num_train, replace=False))
+    print('OK')
 
     # create test and train data
     X_TRAIN, X_TEST = np.zeros((0, *SLICE_SHAPE_BANDS)), np.zeros((0, *SLICE_SHAPE_BANDS))  # type: np.ndarray
@@ -57,66 +54,43 @@ if __name__ == '__main__':
             X_TEST = np.append(X_TEST, _x, axis=0)
             Y_TEST = np.append(Y_TEST, _y, axis=0)
             Z_TEST = np.append(Z_TEST, _z, axis=0)
-    print('OK')
     print(f'TRAINING: X={X_TRAIN.shape}, Y={Y_TRAIN.shape}, Z={Z_TRAIN.shape}')
     print(f'TESTING: X={X_TEST.shape}, Y={Y_TEST.shape}, Z={Z_TEST.shape}')
-
-    # normalize x
-    print('normalizing X...', end=' ', flush=True)
-    X_MAX = np.maximum(np.amax(X_TRAIN), np.amax(X_TEST))
-    X_MIN = np.minimum(np.amin(X_TRAIN), np.amin(X_TEST))
-    X_TRAIN = (X_TRAIN - X_MIN) / (X_MAX - X_MIN)
-    X_TEST = (X_TEST - X_MIN) / (X_MAX - X_MIN)
+    D_TRAIN = [X_TRAIN, Y_TRAIN, Z_TRAIN]  # type: List[np.ndarray]
+    D_TEST = [X_TEST, Y_TEST, Z_TEST]  # type: List[np.ndarray]
     print('OK')
-
-    # generate time-major and channel-major data
-    # NOTE: this was done to avoid repeated transposition, which is computationally expensive
-    print('creating time-major and channel-major data...', end=' ', flush=True)
-    # time-major data
-    DATA_TM_TRAIN = [X_TRAIN, Y_TRAIN, Z_TRAIN]  # type: List[np.ndarray]
-    DATA_TM_TEST = [X_TEST, Y_TEST, Z_TEST]  # type: List[np.ndarray]
-    TM_SHAPE = DATA_TM_TRAIN[0].shape[1:]
-    # channel-major data
-    DATA_CM_TRAIN = [tf.transpose(X_TRAIN, perm=[0, 2, 3, 1, 4]).numpy(), Y_TRAIN, Z_TRAIN]  # type: List[np.ndarray]
-    DATA_CM_TEST = [tf.transpose(X_TEST, perm=[0, 2, 3, 1, 4]).numpy(), Y_TEST, Z_TEST]  # type: List[np.ndarray]
-    CM_SHAPE = DATA_CM_TRAIN[0].shape[1:]
-    print('OK')
-
-    print('Creating Models...', end=' ', flush=True)
-
-    default_loss = {'l': 'categorical_crossentropy', 's': 'mae'}
-    caps_loss = {'l': margin_loss, 's': 'mae'}
-    # metrics = {'l': 'acc', 's': 'mae'} # commented out because s_mae is same as s_loss
-    metrics = {'l': 'acc'}
 
     # training models and specs (model, data, loss)
-    models_dict = {
-        'conv_tm': (models.conv_nn_tm(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
-        'conv_cm': (models.conv_nn_cm(*CM_SHAPE), DATA_CM_TRAIN, DATA_CM_TEST, default_loss),
-        'caps': (models.capsule_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, caps_loss),
-        'lstm': (models.lstm_nn(*TM_SHAPE), DATA_TM_TRAIN, DATA_TM_TEST, default_loss),
-    }  # type: Dict[str, Tuple[k.Model, List[np.ndarray], List[np.ndarray], Dict[str, Any]]]
+    print('Creating Models...', end=' ', flush=True)
+    conv_loss = {'l': 'categorical_crossentropy', 's': 'mae'}
+    lstm_loss = {'l': 'categorical_crossentropy', 's': 'mae'}
+    caps_loss = {'l': margin_loss, 's': 'mae'}
+    metrics = {'l': 'acc'}
+    loss_dict = {'conv': conv_loss, 'lstm': lstm_loss, 'caps': caps_loss}
+    models_dict = {'conv': models.conv_nn, 'lstm': models.lstm_nn, 'caps': models.capsule_nn}
     print('OK')
 
     print('Training and Evaluation')
+    model = models_dict[model_name](*SLICE_SHAPE_BANDS)
+    loss = loss_dict[model_name]
     optimizer = k.optimizers.Adam(0.0005)
-    # iterate each model type
-    model, [x_tr, y_tr, z_tr], [x_te, y_te, z_te], loss = models_dict[model_name]
+    [x_tr, y_tr, z_tr] = D_TRAIN
+    [x_te, y_te, z_te] = D_TEST
     y_tr = k.utils.to_categorical(y_tr, num_classes=2)
     y_te = k.utils.to_categorical(y_te, num_classes=2)
-    filepath = f'weights/{model.name}.hdf5'
+    save_path = f'weights/{model.name}.hdf5'
     # build model
     model.compile(optimizer=optimizer, loss=loss, loss_weights=[1, 0.05], metrics=metrics)
     model.summary(line_length=150)
     # training phase
     if training:
         # load pre-trained weights when available
-        if os.path.exists(filepath):
-            model.load_weights(filepath)
+        if os.path.exists(save_path):
+            model.load_weights(save_path)
         # train
-        save_best = k.callbacks.ModelCheckpoint(filepath, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
+        save_best = k.callbacks.ModelCheckpoint(save_path, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
         model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
     if testing:
-        model.load_weights(filepath)
+        model.load_weights(save_path)
         model.evaluate(x_te, [y_te, z_te], batch_size=64)
     print('Done')

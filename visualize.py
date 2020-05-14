@@ -18,5 +18,5 @@ if __name__ == '__main__':
             axs[i].set_title(bands[i])
             axs[i].imshow(sample[..., i], cmap='gray', interpolation='nearest', vmin=0, vmax=1)
         plt.show()
-        plt.pause(0.1)
+        plt.pause(0.2)
     print('Completed')
