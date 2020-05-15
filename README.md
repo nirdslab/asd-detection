@@ -21,6 +21,14 @@ TESTING: X=(180, 150, 5, 6, 5), Y=(180,), Z=(180,)
 | **LSTM** | 0.9298   | 7.2092   | 0.8056   |
 | **CAPS** | 0.3819   | 5.5865   | 0.8889   |
 
+## Electrode Placement
+```
+F9  F7  F3  [Fz]  F4  F8  F10
+FT7 FC5 FC1 [--]  FC2 FC6 FT8
+T9  T7  C3  [--]  C4  T8  T10
+TP7 CP5 CP1 [--]  CP2 CP6 TP8
+P9  P7  P3  [Pz]  P4  P8  P10
+```
 
 ## Power Spectrum Visualizations
 
