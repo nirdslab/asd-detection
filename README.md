@@ -21,6 +21,12 @@ TESTING: X=(180, 150, 5, 6, 5), Y=(180,), Z=(180,)
 | **LSTM** | 0.9298   | 7.2092   | 0.8056   |
 | **CAPS** | 0.3819   | 5.5865   | 0.8889   |
 
+
+## Power Spectrum Visualizations
+
+![Participant 007](figures/007.png)
+![Participant 021](figures/021.png)
+
 ## Model Architecture
 
 ### CONV Model
