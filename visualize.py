@@ -35,6 +35,6 @@ if __name__ == '__main__':
                 ax.set_yticks([])
         fig.subplots_adjust(wspace=0.05, hspace=0.05)
         fig.colorbar(im, ax=np.ravel(axs).tolist())
-        fig.savefig(f'figures/{p}.pdf', bbox_inches='tight')
+        fig.savefig(f'figures/{p}.png', bbox_inches='tight')
         print(f'{p} - OK')
     print('DONE')
