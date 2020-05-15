@@ -19,7 +19,7 @@ if __name__ == '__main__':
     step = 5
     C = 5
     for p in participants:
-        fig, axs = plt.subplots(R, C, sharex='all', sharey='all', figsize=(9, 6))  # type: Figure, List[List[Axes]]
+        fig, axs = plt.subplots(R, C, sharex='all', sharey='all', figsize=(14, 6))  # type: Figure, List[List[Axes]]
         fig.suptitle(f'Normalized Power Spectrum - Participant {p}')
         # row
         for r in range(R):
