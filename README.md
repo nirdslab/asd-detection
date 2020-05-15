@@ -22,7 +22,8 @@ TESTING: X=(180, 150, 5, 10, 5), Y=(180,), Z=(180,)
 | **CAPS** | 0.3819   | 5.5865   | 0.8889   |
 
 ## Electrode Placement
-![Participant 007](figures/eeg-placement.png)
+![Full-Scale](figures/eeg-placement.png)
+![Minimal](figures/eeg-placement-2.png)
 
 ## Power Spectrum Visualizations
 
