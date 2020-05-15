@@ -27,6 +27,15 @@ source_cols = [
 
 # List of all target columns (interpolate where data is missing)
 target_cols = [
+    'F9', 'F7', 'F5', 'F3', 'F1', 'F2', 'F4', 'F6', 'F8', 'F10',
+    'FT9', 'FT7', 'FC5', 'FC3', 'FC1', 'FC2', 'FC4', 'FC6', 'FT8', 'FT10',
+    'T9', 'T7', 'C5', 'C3', 'C1', 'C2', 'C4', 'C6', 'T8', 'T10',
+    'TP9', 'TP7', 'CP5', 'CP3', 'CP1', 'CP2', 'CP4', 'CP6', 'TP8', 'TP10',
+    'P9', 'P7', 'P5', 'P3', 'P1', 'P2', 'P4', 'P6', 'P8', 'P10'
+]
+
+# List of target columns with least interpolation (but distorts spatial relationship)
+minimal_target_cols = [
     'F9', 'F7', 'F3', 'F4', 'F8', 'F10',
     'FT7', 'FC5', 'FC1', 'FC2', 'FC6', 'FT8',
     'T9', 'T7', 'C3', 'C4', 'T8', 'T10',
@@ -46,7 +55,7 @@ target_cols = [
 
 # define constant values
 NUM_CH_ROWS = 5  # EEG channel rows
-NUM_CH_COLS = 6  # EEG channel columns
+NUM_CH_COLS = 10  # EEG channel columns
 SRC_FREQ = sampling_freq  # sampling frequency
 TARGET_FREQ = 5  # 5 Hz
 DT = 1.0 / SRC_FREQ  # sampling period
