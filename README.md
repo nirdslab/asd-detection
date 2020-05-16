@@ -39,8 +39,8 @@ ________________________________________________________________________________
 
 ## Power Spectrum Visualizations
 
-![Participant 007](figures/007.png)
-![Participant 021](figures/021.png)
+![Participant 007 (NT)](figures/007.png)
+![Participant 018 (ASD)](figures/018.png)
 
 ## Model Architecture
 
