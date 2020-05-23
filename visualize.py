@@ -16,7 +16,7 @@ if __name__ == '__main__':
     data = np.load('data/data-processed-bands.npz')
 
     # plot configuration
-    step = 5
+    step = 2
     C = 5
     for p in participants:
         fig, axs = plt.subplots(R, C, sharex='all', sharey='all', figsize=(14, 6))  # type: Figure, List[List[Axes]]

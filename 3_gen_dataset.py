@@ -107,9 +107,9 @@ if __name__ == '__main__':
             alpha = _ps[..., 7:12]  # (8 - 12 Hz)
             beta = _ps[..., 11:32]  # (12 - 32 Hz)
             gamma = _ps[..., 31:40]  # ( >= 32 Hz)
-            # band power (N x 150 x 5 x 10 x 5)
+            # band power (N x 30 x 5 x 10 x 5)
             _band_power = np.stack([simps(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
-            # differential entropy (DE) (N x 150 x 5 x 10 x 5)
+            # differential entropy (DE) (N x 30 x 5 x 10 x 5)
             _de = np.log(_band_power)
             band_dataset[key] = _de
         print('OK')

@@ -149,7 +149,7 @@ def CAPS(timesteps, ch_rows, ch_cols, bands):
     # == define variables ==
     _f = 8  # filters per convolution
     _l = 4  # convolutions per block
-    _n = 4  # dense + transition blocks
+    _n = 2  # dense + transition blocks
     _d0 = 4  # start capsule dimensions
     _s = (2, 1)  # conv capsule stride
     _d1 = 8  # final capsule dimensions
