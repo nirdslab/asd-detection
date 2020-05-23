@@ -193,9 +193,9 @@ def MLP(features):
     ml = il
 
     # == intermediate layer(s) ==
+    ml = kl.Dense(16)(ml)
     ml = kl.Dense(32)(ml)
     ml = kl.Dense(64)(ml)
-    ml = kl.Dense(128)(ml)
 
     # == output layer(s) ==
     label = kl.Dense(2, activation='softmax', kernel_regularizer=REG, name='l')(ml)
