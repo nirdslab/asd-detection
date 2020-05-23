@@ -65,4 +65,6 @@ NUM_BANDS = 50  # number of frequency bands in final result
 SLICE_WINDOW = 30  # secs per slice
 SLICE_STEP = 15  # secs to step to get next slice
 SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
-SLICE_SHAPE_BANDS = (*SLICE_SHAPE[:-1], 5)
+
+EEG_SHAPE = (*SLICE_SHAPE[:-1], 5)
+IRT_SHAPE = (80,)

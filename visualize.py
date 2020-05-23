@@ -7,12 +7,12 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from info import SLICE_SHAPE_BANDS, participants
+from info import EEG_SHAPE, participants
 
 band_names = ['delta', 'theta', 'alpha', 'beta', 'gamma'][::-1]
 
 if __name__ == '__main__':
-    T, H, W, R = SLICE_SHAPE_BANDS
+    T, H, W, R = EEG_SHAPE
     data = np.load('data/data-processed-bands.npz')
 
     # plot configuration

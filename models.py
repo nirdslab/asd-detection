@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from typing import Tuple
 
 from capsnet.layers import ConvCaps2D, DenseCaps
 from capsnet.nn import squash, norm, mask_cid
@@ -57,17 +58,15 @@ class DenseBlock(kl.Layer):
         return x
 
 
-def CONV(timesteps, ch_rows, ch_cols, bands):
+def CONV(eeg_shape: Tuple):
     """
     Generate Convolution Model for EEG data
 
-    :param timesteps:
-    :param ch_rows:
-    :param ch_cols:
-    :param bands:
+    :param eeg_shape
     :return:
     """
     # == input layer(s) ==
+    [timesteps, ch_rows, ch_cols, bands] = eeg_shape
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
     ml = kl.Reshape((timesteps, ch_rows * ch_cols, bands))(il)
 
@@ -97,17 +96,15 @@ def CONV(timesteps, ch_rows, ch_cols, bands):
     return km.Model(inputs=il, outputs=[label, score], name='CONV')
 
 
-def LSTM(timesteps, ch_rows, ch_cols, bands):
+def LSTM(eeg_shape: Tuple):
     """
     Generate LSTM Model for EEG data
 
-    :param timesteps:
-    :param ch_rows:
-    :param ch_cols:
-    :param bands:
+    :param eeg_shape:
     :return:
     """
     # == input layer(s) ==
+    [timesteps, ch_rows, ch_cols, bands] = eeg_shape
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
     ml = kl.Reshape((timesteps, ch_rows * ch_cols * bands))(il)
 
@@ -132,17 +129,15 @@ def LSTM(timesteps, ch_rows, ch_cols, bands):
     return km.Model(inputs=il, outputs=[label, score], name='LSTM')
 
 
-def CAPS(timesteps, ch_rows, ch_cols, bands):
+def CAPS(eeg_shape: Tuple):
     """
     Generate Capsule Model for EEG data
 
-    :param timesteps:
-    :param ch_rows:
-    :param ch_cols:
-    :param bands:
+    :param eeg_shape:
     :return:
     """
     # == input layer(s) ==
+    [timesteps, ch_rows, ch_cols, bands] = eeg_shape
     il = kl.Input(shape=(timesteps, ch_rows, ch_cols, bands))
     ml = kl.Reshape(target_shape=(timesteps, ch_rows * ch_cols, bands))(il)
 
@@ -182,24 +177,36 @@ def CAPS(timesteps, ch_rows, ch_cols, bands):
     return km.Model(inputs=il, outputs=[label, score], name='CAPS')
 
 
-def MLP(features):
+def MLP(irt_shape: Tuple):
     """
     Generate MLP for Thermal Data
 
-    :param features:
+    :param irt_shape:
     """
     # == input layer(s) ==
-    il = kl.Input(shape=(features,))
+    il = kl.Input(shape=irt_shape)
     ml = il
 
     # == intermediate layer(s) ==
-    ml = kl.Dense(16)(ml)
-    ml = kl.Dense(32)(ml)
-    ml = kl.Dense(64)(ml)
+    ml = kl.Dense(16, activation='relu', kernel_regularizer=REG)(ml)
+    ml = kl.Dense(32, activation='relu', kernel_regularizer=REG)(ml)
+    ml = kl.Dense(64, activation='relu', kernel_regularizer=REG)(ml)
 
     # == output layer(s) ==
     label = kl.Dense(2, activation='softmax', kernel_regularizer=REG, name='l')(ml)
     score = kl.Dense(1, kernel_regularizer=REG, name='s')(ml)
 
     # == create and return model ==
-    return km.Model(inputs=il, outputs=[label, score], name='CONV')
+    return km.Model(inputs=il, outputs=[label, score], name='MLP')
+
+
+def CONV_MLP(eeg_shape: Tuple, irt_shape: Tuple):
+    return
+
+
+def LSTM_MLP(eeg_shape: Tuple, irt_shape: Tuple):
+    return
+
+
+def CAPS_MLP(eeg_shape: Tuple, irt_shape: Tuple):
+    return
