@@ -57,7 +57,7 @@ minimal_target_cols = [
 NUM_CH_ROWS = 5  # EEG channel rows
 NUM_CH_COLS = 10  # EEG channel columns
 SRC_FREQ = sampling_freq  # sampling frequency
-TARGET_FREQ = 5  # 5 Hz
+TARGET_FREQ = 1  # 1 Hz
 DT = 1.0 / SRC_FREQ  # sampling period
 
 # define parameters to extract temporal slices

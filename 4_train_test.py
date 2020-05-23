@@ -44,8 +44,8 @@ if __name__ == '__main__':
     Z_TRAIN, Z_TEST = np.zeros(0, ), np.zeros(0, )  # type: np.ndarray
     for p in participants:
         _x = dataset[f'{p}_x']
-        _y = np.full(len(_x), dataset[f'{p}_y'])
-        _z = np.full(len(_x), dataset[f'{p}_z'])
+        _y = np.full(len(_x), dataset[f'{p}_bc'])
+        _z = np.full(len(_x), dataset[f'{p}_r'])
         if p in p_train:
             X_TRAIN = np.append(X_TRAIN, _x, axis=0)
             Y_TRAIN = np.append(Y_TRAIN, _y, axis=0)
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     caps_loss = {'l': margin_loss, 's': 'mae'}
     metrics = {'l': 'acc'}
     loss_dict = {'conv': conv_loss, 'lstm': lstm_loss, 'caps': caps_loss}
-    models_dict = {'conv': models.conv_nn, 'lstm': models.lstm_nn, 'caps': models.capsule_nn}
+    models_dict = {'conv': models.CONV, 'lstm': models.LSTM, 'caps': models.CAPS}
     print('OK')
 
     print('Training and Evaluation')
@@ -89,8 +89,8 @@ if __name__ == '__main__':
             model.load_weights(save_path)
         # train
         save_best = k.callbacks.ModelCheckpoint(save_path, monitor='val_loss', save_best_only=True, save_weights_only=True, verbose=0)
-        model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=2000, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
+        model.fit(x_tr, [y_tr, z_tr], batch_size=32, epochs=500, validation_data=(x_te, [y_te, z_te]), callbacks=[save_best], verbose=2)
     if testing:
         model.load_weights(save_path)
-        model.evaluate(x_te, [y_te, z_te], batch_size=64, verbose=2)
+        model.evaluate(x_te, [y_te, z_te], batch_size=32, verbose=2)
     print('Done')
