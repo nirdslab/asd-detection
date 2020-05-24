@@ -9,6 +9,8 @@ import pandas as pd
 import tensorflow as tf
 from capsnet.losses import margin_loss
 from tensorflow import keras as k
+from sklearn.metrics import classification_report, r2_score, mean_absolute_error, explained_variance_score
+
 
 import models
 from info import participants, EEG_SHAPE, IRT_SHAPE
@@ -128,9 +130,9 @@ if __name__ == '__main__':
     save_path = f'weights/{model.name}.hdf5'
     # build model
     model.compile(optimizer=optimizer, loss=model_loss, loss_weights=loss_weights, metrics=metrics)
-    model.summary(line_length=150)
     # training phase
     if training:
+        model.summary(line_length=150)
         # load pre-trained weights when available
         if os.path.exists(save_path):
             model.load_weights(save_path)
@@ -139,5 +141,15 @@ if __name__ == '__main__':
         model.fit(D_TRAIN[0], D_TRAIN[1], batch_size=32, epochs=500, validation_data=(D_TEST[0], D_TEST[1]), callbacks=[save_best], verbose=2)
     if testing:
         model.load_weights(save_path)
-        model.evaluate(D_TEST[0], D_TEST[1], batch_size=32, verbose=2)
+        [label, score] = model.predict(D_TEST[0], batch_size=32, verbose=2)
+        y_pred = np.argmax(label, axis=1)
+        y_true = np.argmax(D_TEST[1][0], axis=1)
+        print("Classification Task")
+        print(classification_report(y_true, y_pred))
+        print("Regression Task")
+        r_true = D_TEST[1][1]
+        r_pred = score
+        print(f'R^2 = {r2_score(r_true, r_pred)}')
+        print(f'MAE = {mean_absolute_error(r_true, r_pred)}')
+        print(f'EVS = {explained_variance_score(r_true, r_pred)}')
     print('Done')
