@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from info import EEG_SHAPE, participants, TARGET_BANDWIDTHS
+from info import EEG_SHAPE, participants
 
 band_names = ['delta', 'theta', 'alpha', 'beta', 'gamma']
 
@@ -26,8 +26,9 @@ if __name__ == '__main__':
             axs[r][0].set_ylabel(band_names[-r - 1])
             # column
             for c in range(C):
-                t = c * step
-                axs[-1][c].set_xlabel(f'{t}')
+                lo = c * step
+                hi = (c + 1) * step
+                axs[-1][c].set_xlabel(f'({lo}-{hi})')
                 # select data - shape: (N, C, H, W, R)
                 d = data[f'{p}_x']
                 # get exponent of differential entropy, for true power
@@ -41,9 +42,11 @@ if __name__ == '__main__':
                 d_min = np.min(d)
                 d_max = np.max(d)
                 d = (d - d_min) / (d_max - d_min)
+                # obtain data within time range
+                d = np.amax(d[lo:hi], axis=0)
                 # power spectrum
                 ax = axs[r][c]
-                im = ax.imshow(d[t, :, :, -r - 1], cmap='inferno', vmin=0, vmax=1)
+                im = ax.imshow(d[:, :, -r - 1], cmap='inferno', vmin=0, vmax=1, interpolation='spline36')
                 ax.set_xticks([])
                 ax.set_yticks([])
         fig.subplots_adjust(wspace=0.05, hspace=0.05)
