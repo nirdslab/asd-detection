@@ -5,7 +5,7 @@ import pandas as pd
 import pywt
 from scipy.integrate import simps
 
-from info import participants, epochs, NUM_BANDS, SLICE_SHAPE, SLICE_WINDOW, SLICE_STEP, SRC_FREQ, TARGET_FREQ, DT
+from info import participants, epochs, NUM_BANDS, SLICE_SHAPE, SLICE_WINDOW, SLICE_STEP, SRC_FREQ, TARGET_FREQ, DT, TARGET_BANDS
 
 
 def scale(_x: np.array):
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     r_col = 'ADOS2'
     print('OK')
     BANDS = np.arange(NUM_BANDS) + 1  # frequencies (1 Hz - 50 Hz)
-    CREATE_FULL_DATASET = True
+    CREATE_FULL_DATASET = False
     CREATE_BANDS_DATASET = True
 
     # define dict to store output
@@ -102,13 +102,8 @@ if __name__ == '__main__':
                 continue
             # power spectrum
             _ps = dataset[key]
-            delta = _ps[..., 0:4]  # ( <= 4 Hz)
-            theta = _ps[..., 3:8]  # (4 - 8 Hz)
-            alpha = _ps[..., 7:12]  # (8 - 12 Hz)
-            beta = _ps[..., 11:32]  # (12 - 32 Hz)
-            gamma = _ps[..., 31:40]  # ( >= 32 Hz)
             # band power (N x 30 x 5 x 10 x 5)
-            _band_power = np.stack([simps(x, axis=-1) for x in [delta, theta, alpha, beta, gamma]], axis=-1)  # type: np.ndarray
+            _band_power = np.stack([simps(_ps[..., lo - 1:hi], axis=-1) for lo, hi in TARGET_BANDS], axis=-1)  # type: np.ndarray
             # differential entropy (DE) (N x 30 x 5 x 10 x 5)
             _de = np.log(_band_power)
             band_dataset[key] = _de

@@ -66,5 +66,8 @@ SLICE_WINDOW = 30  # secs per slice
 SLICE_STEP = 15  # secs to step to get next slice
 SLICE_SHAPE = (SLICE_WINDOW * TARGET_FREQ, NUM_CH_ROWS, NUM_CH_COLS, NUM_BANDS)
 
+TARGET_BANDS = [(1, 4), (4, 8), (8, 12), (12, 32), (32, 40)]
+TARGET_BANDWIDTHS = [hi - lo + 1 for lo, hi in TARGET_BANDS]
+
 EEG_SHAPE = (*SLICE_SHAPE[:-1], 5)
 IRT_SHAPE = (80,)
