@@ -17,7 +17,7 @@ from info import participants, EEG_SHAPE, IRT_SHAPE
 
 tf.random.set_seed(42)
 np.random.seed(42)
-INFO = 'Expected Arguments: [OPTIONAL] [ train | test ] [ MODEL_NAME ]'
+INFO = 'Expected Arguments: [OPTIONAL] [ train | test | info ] [ MODEL_NAME ]'
 FRACTION = 0.7
 
 if __name__ == '__main__':
@@ -25,10 +25,11 @@ if __name__ == '__main__':
     assert len(sys.argv) == 3, INFO
     mode = sys.argv[1].strip().lower()
     model_name = sys.argv[2].strip().lower()
-    assert mode in ['train', 'test'], INFO
+    assert mode in ['train', 'test', 'info'], INFO
     assert model_name in ['conv', 'lstm', 'caps', 'mlp', 'conv-mlp', 'lstm-mlp', 'caps-mlp'], INFO
     training = mode == 'train'
     testing = mode == 'test'
+    info = mode == 'info'
 
     # load EEG dataset
     print('loading EEG dataset...', end=' ', flush=True)
@@ -130,9 +131,11 @@ if __name__ == '__main__':
     save_path = f'weights/{model.name}.hdf5'
     # build model
     model.compile(optimizer=optimizer, loss=model_loss, loss_weights=loss_weights, metrics=metrics)
+    # model information
+    if info:
+        model.summary(line_length=150)
     # training phase
     if training:
-        model.summary(line_length=150)
         # load pre-trained weights when available
         if os.path.exists(save_path):
             model.load_weights(save_path)
