@@ -1,7 +1,7 @@
 numpy==1.18.4
 pandas==1.0.3
 pyarrow==0.17.0
-tensorflow==2.2.0
+tensorflow==2.5.3
 mne==0.20.4
 pywavelets==1.1.1
 matplotlib==3.2.1
